@@ -1,0 +1,159 @@
+<div class="chat-container">
+  <!-- Sol Sidebar - Geçmiş Sohbetler -->
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
+      <h2>
+        <i class="pi pi-comments" style="margin-right: 0.5rem;"></i>
+        Sohbetlerim
+      </h2>
+      <button class="new-chat-button" (click)="createNewSession()" pRipple>
+        <i class="pi pi-plus"></i>
+        Yeni Sohbet
+      </button>
+    </div>
+
+    <div class="chat-search">
+      <span class="p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input 
+          type="text" 
+          pInputText 
+          placeholder="Sohbet ara..." 
+          (input)="searchChats($event)"
+          pRipple />
+      </span>
+    </div>
+
+    <div class="chat-list">
+      <!-- Yükleniyor Durumu -->
+      <div *ngIf="isLoading" class="loading-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Sohbetler yükleniyor...</span>
+      </div>
+
+      <!-- Sohbet Listesi -->
+      <div *ngFor="let session of filteredSessions" 
+           class="chat-item" 
+           [class.active]="currentSession?.id === session.id"
+           (click)="selectSession(session)"
+           pRipple>
+        <div class="chat-avatar">
+          <i class="pi pi-robot"></i>
+        </div>
+        <div class="chat-info">
+          <div class="chat-name">{{ session.title }}</div>
+          <div class="chat-preview">{{ session.description || 'Yeni sohbet' }}</div>
+        </div>
+        <div class="chat-meta">
+          <span class="chat-time">{{ formatDate(session.createdAt) }}</span>
+          <button class="delete-button" (click)="deleteSession(session.id, $event)" pRipple>
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Boş Durum -->
+      <div *ngIf="!isLoading && filteredSessions.length === 0" class="empty-state">
+        <i class="pi pi-comments"></i>
+        <span>Henüz sohbet yok</span>
+        <button class="new-chat-button" (click)="createNewSession()" pRipple>
+          Yeni Sohbet Başlat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sağ Taraf - Aktif Sohbet Alanı -->
+  <div class="chat-main">
+    <!-- Sohbet Başlığı -->
+    <div class="chat-header" *ngIf="currentSession">
+      <div class="chat-header-info">
+        <div class="chat-avatar">
+          <i class="pi pi-robot"></i>
+        </div>
+        <div class="chat-title">
+          <h3>{{ currentSession.title }}</h3>
+          <span class="chat-status-text">Aktif</span>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <button class="action-button" pRipple>
+          <i class="pi pi-ellipsis-v"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sohbet Seçilmemiş Durumu -->
+    <div *ngIf="!currentSession" class="no-chat-selected">
+      <i class="pi pi-comments"></i>
+      <h3>Sohbet Seçilmedi</h3>
+      <p>Yeni bir sohbet başlatmak için sol menüden "Yeni Sohbet" butonuna tıklayın.</p>
+    </div>
+
+    <!-- Sohbet Mesajları -->
+    <div *ngIf="currentSession" class="chat-messages" #chatMessages>
+      <!-- Yükleniyor Durumu -->
+      <div *ngIf="isLoading" class="loading-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Mesajlar yükleniyor...</span>
+      </div>
+
+      <!-- Mesaj Listesi -->
+      <div *ngFor="let message of messages" 
+           class="message" 
+           [class.user-message]="message.sender === 1" 
+           [class.ai-message]="message.sender === 2">
+        <div class="message-avatar" *ngIf="message.sender === 2">
+          <i class="pi pi-robot"></i>
+        </div>
+        <div class="message-content">
+          <div class="message-text" [innerHTML]="message.messageContent"></div>
+          <div class="message-time">{{ formatDate(message.sentAt) }}</div>
+        </div>
+        <div class="message-avatar" *ngIf="message.sender === 1">
+          <i class="pi pi-user"></i>
+        </div>
+      </div>
+
+      <!-- Boş Durum -->
+      <div *ngIf="!isLoading && messages.length === 0" class="empty-state">
+        <i class="pi pi-comments"></i>
+        <span>Henüz mesaj yok</span>
+        <p>İlk mesajınızı göndermek için aşağıdaki alanı kullanın.</p>
+      </div>
+    </div>
+
+    <!-- Mesaj Gönderme Alanı -->
+    <div class="chat-input" *ngIf="currentSession">
+      <div class="input-actions">
+        <button class="action-button" pRipple>
+          <i class="pi pi-paperclip"></i>
+        </button>
+        <button class="action-button" pRipple>
+          <i class="pi pi-image"></i>
+        </button>
+      </div>
+      <div class="message-input">
+        <textarea 
+          pInputTextarea 
+          [(ngModel)]="newMessage"
+          [disabled]="isSending"
+          style="min-height: 44px; max-height: 120px;"
+          placeholder="Mesajınızı yazın..."
+          (keyup.enter)="sendMessage()"
+          pRipple>
+        </textarea>
+      </div>
+      <button 
+        class="send-button" 
+        (click)="sendMessage()" 
+        [disabled]="!newMessage.trim() || isSending"
+        pRipple>
+        <i class="pi" [ngClass]="isSending ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Mesajları -->
+<p-toast></p-toast>

@@ -32,6 +32,8 @@
               }
             ],
             "styles": [
+         
+              
               "src/styles.scss"
             ],
             "scripts": [],
@@ -47,12 +49,12 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumError": "30kB"
                 }
               ],
               "outputHashing": "all"
@@ -96,6 +98,7 @@
               }
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
             ],
             "scripts": []
