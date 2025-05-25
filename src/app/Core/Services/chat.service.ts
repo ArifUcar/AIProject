@@ -6,6 +6,7 @@ import { ChatSessionRequest } from '../../Model/Entity/Request/ChatSession.Reque
 import { ChatSessionResponse } from '../../Model/Entity/Response/ChatSession.Response';
 import { ChatMessageRequest } from '../../Model/Entity/Request/ChatMessage.Request';
 import { ChatMessageResponse } from '../../Model/Entity/Response/ChatMessage.Response';
+import { CreateMessageResponse } from '../../Model/Entity/Response/CreateMessage.Response';
 
 @Injectable({
   providedIn: 'root'
@@ -54,14 +55,14 @@ export class ChatService {
   }
 
   // Mesaj Yönetimi
-  sendMessage(messageData: ChatMessageRequest): Observable<ChatMessageResponse> {
+  sendMessage(messageData: ChatMessageRequest): Observable<CreateMessageResponse> {
     const requestData: ChatMessageRequest = {
       chatSessionId: messageData.chatSessionId,
       sender: 1, // user
       messageContent: messageData.messageContent
     };
     console.log('Mesaj gönderme isteği:', requestData);
-    return this.http.post<ChatMessageResponse>(`${this.apiUrl}/message`, requestData);
+    return this.http.post<CreateMessageResponse>(`${this.apiUrl}/message`, requestData);
   }
 
   getMessages(sessionId: string): Observable<ChatMessageResponse[]> {

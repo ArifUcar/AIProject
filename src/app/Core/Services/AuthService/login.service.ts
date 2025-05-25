@@ -1,47 +1,89 @@
-import { Injectable } from '@angular/core';
+import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment.development';
 import { LoginResponse } from '../../../Model/Entity/Response/Login.Response';
 import { LoginRequest } from '../../../Model/Entity/Request/Login.Request';
+import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LoginService {
   private readonly apiUrl = `${environment.apiUrl}/Auth/login`;
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
     this.checkCurrentToken();
   }
 
   private checkCurrentToken(): void {
-    const token = localStorage.getItem('accessToken');
-    const expiresAt = localStorage.getItem('tokenExpiresAt');
-    
-    if (token && expiresAt) {
-      console.log('Mevcut token durumu:', {
-        token: token.substring(0, 20) + '...',
-        expiresAt: new Date(expiresAt).toLocaleString('tr-TR')
-      });
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      const expiresAt = localStorage.getItem('tokenExpiresAt');
+      
+      if (token && expiresAt) {
+        console.log('Mevcut token durumu:', {
+          token: token.substring(0, 20) + '...',
+          expiresAt: new Date(expiresAt).toLocaleString('tr-TR')
+        });
 
-      if (new Date(expiresAt) <= new Date()) {
-        console.warn('Token süresi dolmuş, temizleniyor...');
-        this.clearAuthData();
+        if (new Date(expiresAt) <= new Date()) {
+          console.warn('Token süresi dolmuş, temizleniyor...');
+          this.removeTokens();
+        }
       }
     }
   }
 
-  private clearAuthData(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('tokenExpiresAt');
-    localStorage.removeItem('user');
-    console.log('Auth verileri temizlendi');
+  private getStorage(): Storage | null {
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage;
+    }
+    return null;
+  }
+
+  setToken(token: string): void {
+    const storage = this.getStorage();
+    if (storage) {
+      storage.setItem(this.TOKEN_KEY, token);
+    }
+  }
+
+  getToken(): string | null {
+    const storage = this.getStorage();
+    return storage ? storage.getItem(this.TOKEN_KEY) : null;
+  }
+
+  setRefreshToken(token: string): void {
+    const storage = this.getStorage();
+    if (storage) {
+      storage.setItem(this.REFRESH_TOKEN_KEY, token);
+    }
+  }
+
+  getRefreshToken(): string | null {
+    const storage = this.getStorage();
+    return storage ? storage.getItem(this.REFRESH_TOKEN_KEY) : null;
+  }
+
+  removeTokens(): void {
+    const storage = this.getStorage();
+    if (storage) {
+      storage.removeItem(this.TOKEN_KEY);
+      storage.removeItem(this.REFRESH_TOKEN_KEY);
+      localStorage.removeItem('tokenExpiresAt');
+      localStorage.removeItem('user');
+      console.log('Auth verileri temizlendi');
+    }
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    this.clearAuthData();
+    this.removeTokens();
 
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
@@ -58,12 +100,12 @@ export class LoginService {
         next: (response) => {
           console.log('Login başarılı, token kaydediliyor...');
           
-          localStorage.setItem('accessToken', response.accessToken);
-          localStorage.setItem('refreshToken', response.refreshToken);
+          this.setToken(response.accessToken);
+          this.setRefreshToken(response.refreshToken);
           localStorage.setItem('tokenExpiresAt', response.expiresAt);
           localStorage.setItem('user', JSON.stringify(response.user));
 
-          const savedToken = localStorage.getItem('accessToken');
+          const savedToken = this.getToken();
           if (!savedToken) {
             throw new Error('Token kaydedilemedi');
           }
@@ -75,24 +117,24 @@ export class LoginService {
         },
         error: (error) => {
           console.error('Login hatası:', error);
-          this.clearAuthData();
+          this.removeTokens();
         }
       }),
       catchError((error) => {
         console.error('Login işlemi başarısız:', error);
-        this.clearAuthData();
+        this.removeTokens();
         return throwError(() => error);
       })
     );
   }
 
   logout(): void {
-    this.clearAuthData();
+    this.removeTokens();
     console.log('Çıkış yapıldı, auth verileri temizlendi');
   }
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('accessToken');
+    const token = this.getToken();
     const expiresAt = localStorage.getItem('tokenExpiresAt');
     
     if (!token || !expiresAt) {
@@ -100,9 +142,5 @@ export class LoginService {
     }
 
     return new Date(expiresAt) > new Date();
-  }
-
-  getToken(): string | null {
-    return localStorage.getItem('accessToken');
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -14,6 +14,7 @@ import { ChatMessageResponse } from '../../../Model/Entity/Response/ChatMessage.
 import { ChatMessageRequest } from '../../../Model/Entity/Request/ChatMessage.Request';
 import { Subject, takeUntil } from 'rxjs';
 import { Router } from '@angular/router';
+import { CreateMessageResponse } from '../../../Model/Entity/Response/CreateMessage.Response';
 
 @Component({
   selector: 'app-chat-page',
@@ -50,7 +51,8 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
   constructor(
     private chatService: ChatService,
     private messageService: MessageService,
-    private router: Router
+    private router: Router,
+    private changeDetectorRef: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -99,12 +101,41 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
   }
 
   selectSession(session: ChatSessionResponse): void {
-    this.currentSession = session;
-    this.loadMessages(session.id);
+    this.isLoading = true;
+    this.currentSession = session; // Önce mevcut session'ı ayarla
+    this.loadMessages(session.id); // Hemen mesajları yüklemeye başla
+
+    // Arka planda oturum detaylarını güncelle
+    this.chatService.getSession(session.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedSession) => {
+          // Oturum listesini güncelle
+          const index = this.sessions.findIndex(s => s.id === updatedSession.id);
+          if (index !== -1) {
+            this.sessions[index] = updatedSession;
+          }
+          // Eğer bu oturum seçili ise güncelle
+          if (this.currentSession?.id === updatedSession.id) {
+            this.currentSession = updatedSession;
+          }
+        },
+        error: (error) => {
+          console.error('Oturum detayları yüklenirken hata:', error);
+          // Hata durumunda sessizce devam et, mevcut session bilgilerini kullan
+          if (error.status === 500) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'Uyarı',
+              detail: 'Oturum detayları güncellenemedi. Bazı bilgiler güncel olmayabilir.'
+            });
+          }
+        }
+      });
   }
 
   loadMessages(sessionId: string): void {
-    this.isLoading = true;
+    this.messages = []; // Önce mevcut mesajları temizle
     this.chatService.getMessages(sessionId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -114,10 +145,18 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
         },
         error: (error) => {
           console.error('Mesajlar yüklenirken hata:', error);
+          let errorMessage = 'Mesajlar yüklenirken bir hata oluştu.';
+          
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.status === 500) {
+            errorMessage = 'Sunucu hatası nedeniyle mesajlar yüklenemedi. Lütfen daha sonra tekrar deneyin.';
+          }
+          
           this.messageService.add({
             severity: 'error',
             summary: 'Hata',
-            detail: 'Mesajlar yüklenirken bir hata oluştu.'
+            detail: errorMessage
           });
           this.isLoading = false;
         }
@@ -140,24 +179,28 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (session) => {
-          console.log('Yeni oturum oluşturuldu:', session);
           // Yeni oturumu listenin başına ekle
           this.sessions = [session, ...this.sessions];
-          // Yeni oturumu seç
-          this.selectSession(session);
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Başarılı',
-            detail: 'Yeni sohbet oturumu oluşturuldu.'
-          });
+          // Mevcut session'ı güncelle ve mesajları yükle
+          this.currentSession = session;
+          this.messages = []; // Mesajları temizle
+          this.loadMessages(session.id);
           this.isLoading = false;
         },
         error: (error) => {
           console.error('Yeni oturum oluşturulurken hata:', error);
+          let errorMessage = 'Yeni sohbet oturumu oluşturulurken bir hata oluştu.';
+          
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.status === 500) {
+            errorMessage = 'Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.';
+          }
+          
           this.messageService.add({
             severity: 'error',
             summary: 'Hata',
-            detail: 'Yeni sohbet oturumu oluşturulurken bir hata oluştu.'
+            detail: errorMessage
           });
           this.isLoading = false;
         }
@@ -186,8 +229,9 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
       outputTokens: 0
     };
 
-    // Önce geçici mesajı ekle
+    // Önce geçici mesajı ekle ve view'ı güncelle
     this.messages = [...this.messages, tempMessage];
+    this.changeDetectorRef.detectChanges(); // View'ı hemen güncelle
     const tempMessageContent = this.newMessage;
     this.newMessage = '';
 
@@ -195,12 +239,28 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
     this.chatService.sendMessage(messageData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (userMessage) => {
-          console.log('Kullanıcı mesajı gönderildi:', userMessage);
-          // Geçici mesajı gerçek mesajla değiştir
-          this.messages = this.messages.map(msg => 
-            msg.id === tempMessage.id ? userMessage : msg
-          );
+        next: (response: CreateMessageResponse) => {
+          if (response.isSuccess) {
+            // Geçici mesajı gerçek mesajla değiştir
+            const updatedMessage: ChatMessageResponse = {
+              ...tempMessage,
+              id: response.id
+            };
+            this.messages = this.messages.map(msg => 
+              msg.id === tempMessage.id ? updatedMessage : msg
+            );
+            this.changeDetectorRef.detectChanges(); // View'ı hemen güncelle
+          } else {
+            // Hata durumunda geçici mesajı kaldır
+            this.messages = this.messages.filter(msg => msg.id !== tempMessage.id);
+            this.newMessage = tempMessageContent;
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Hata',
+              detail: response.message || 'Mesaj gönderilirken bir hata oluştu.'
+            });
+            this.changeDetectorRef.detectChanges(); // View'ı hemen güncelle
+          }
           this.isSending = false;
         },
         error: (error) => {
@@ -214,6 +274,7 @@ export class ChatPageComponent implements OnInit, AfterViewChecked {
             summary: 'Hata',
             detail: 'Mesaj gönderilirken bir hata oluştu.'
           });
+          this.changeDetectorRef.detectChanges(); // View'ı hemen güncelle
           this.isSending = false;
         }
       });
