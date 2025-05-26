@@ -11,8 +11,10 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class LoginService {
   private readonly apiUrl = `${environment.apiUrl}/Auth/login`;
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
+  private readonly TOKEN_KEY = 'accessToken';
+  private readonly REFRESH_TOKEN_KEY = 'refreshToken';
+  private readonly EXPIRES_AT_KEY = 'tokenExpiresAt';
+  private readonly USER_KEY = 'user';
 
   constructor(
     private http: HttpClient,
@@ -23,8 +25,8 @@ export class LoginService {
 
   private checkCurrentToken(): void {
     if (isPlatformBrowser(this.platformId)) {
-      const token = localStorage.getItem(this.TOKEN_KEY);
-      const expiresAt = localStorage.getItem('tokenExpiresAt');
+      const token = this.getToken();
+      const expiresAt = this.getStorage()?.getItem(this.EXPIRES_AT_KEY);
       
       if (token && expiresAt) {
         console.log('Mevcut token durumu:', {
@@ -76,8 +78,8 @@ export class LoginService {
     if (storage) {
       storage.removeItem(this.TOKEN_KEY);
       storage.removeItem(this.REFRESH_TOKEN_KEY);
-      localStorage.removeItem('tokenExpiresAt');
-      localStorage.removeItem('user');
+      storage.removeItem(this.EXPIRES_AT_KEY);
+      storage.removeItem(this.USER_KEY);
       console.log('Auth verileri temizlendi');
     }
   }
@@ -102,8 +104,12 @@ export class LoginService {
           
           this.setToken(response.accessToken);
           this.setRefreshToken(response.refreshToken);
-          localStorage.setItem('tokenExpiresAt', response.expiresAt);
-          localStorage.setItem('user', JSON.stringify(response.user));
+          
+          const storage = this.getStorage();
+          if (storage) {
+            storage.setItem(this.EXPIRES_AT_KEY, response.expiresAt);
+            storage.setItem(this.USER_KEY, JSON.stringify(response.user));
+          }
 
           const savedToken = this.getToken();
           if (!savedToken) {
@@ -135,7 +141,8 @@ export class LoginService {
 
   isAuthenticated(): boolean {
     const token = this.getToken();
-    const expiresAt = localStorage.getItem('tokenExpiresAt');
+    const storage = this.getStorage();
+    const expiresAt = storage?.getItem(this.EXPIRES_AT_KEY);
     
     if (!token || !expiresAt) {
       return false;

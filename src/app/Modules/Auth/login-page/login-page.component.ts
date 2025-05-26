@@ -111,25 +111,30 @@ export class LoginPageComponent implements OnInit {
         next: (response) => {
           console.log('Login başarılı, yönlendiriliyor...');
           
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Başarılı',
-            detail: 'Giriş başarılı! Chat sayfasına yönlendiriliyorsunuz...'
-          });
-
           // Chat sayfasına yönlendir
-          setTimeout(() => {
-            this.router.navigate(['/chat']).then(success => {
-              if (!success) {
-                console.error('Chat sayfasına yönlendirme başarısız');
-                this.messageService.add({
-                  severity: 'error',
-                  summary: 'Hata',
-                  detail: 'Chat sayfasına yönlendirme başarısız oldu'
-                });
-              }
+          this.router.navigate(['/chat']).then(success => {
+            if (!success) {
+              console.error('Chat sayfasına yönlendirme başarısız');
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Hata',
+                detail: 'Chat sayfasına yönlendirme başarısız oldu'
+              });
+            } else {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Başarılı',
+                detail: 'Giriş başarılı! Chat sayfasına yönlendiriliyorsunuz...'
+              });
+            }
+          }).catch(error => {
+            console.error('Yönlendirme hatası:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Hata',
+              detail: 'Yönlendirme sırasında bir hata oluştu'
             });
-          }, 1000);
+          });
         },
         error: (error) => {
           console.error('Login hatası:', error);

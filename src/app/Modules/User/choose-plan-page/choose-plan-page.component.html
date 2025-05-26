@@ -1,0 +1,180 @@
+<div class="page-container">
+  <!-- Hero Bölümü -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1>AI Asistanınızı Seçin</h1>
+      <p class="hero-subtitle">Size en uygun planı seçin ve yapay zeka asistanınızla hemen başlayın</p>
+      <div class="hero-features">
+        <div class="feature">
+          <svg class="feature-icon" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span>7/24 AI Desteği</span>
+        </div>
+        <div class="feature">
+          <svg class="feature-icon" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span>Hızlı Yanıtlar</span>
+        </div>
+        <div class="feature">
+          <svg class="feature-icon" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span>Güvenli İletişim</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="plan-container">
+    <!-- Plan Kartları -->
+    <div class="plan-grid">
+      <div *ngFor="let plan of plans" 
+           class="plan-card"
+           [attr.data-plan-id]="plan.id"
+           [class.selected]="selectedPlan?.id === plan.id"
+           [style.borderColor]="plan.colorCode">
+        
+        <!-- Plan Başlığı -->
+        <div class="plan-header" [style.background]="plan.colorCode">
+          <div class="popular-badge" *ngIf="plan.displayOrder === 1">En Popüler</div>
+          <h2>{{ plan.name }}</h2>
+          <div class="plan-price">
+            <span class="currency">₺</span>
+            <span class="amount">{{ plan.price }}</span>
+            <span class="period">/hafta</span>
+          </div>
+          <div class="price-note">Haftalık otomatik yenilenir</div>
+        </div>
+
+        <!-- Plan İçeriği -->
+        <div class="plan-content">
+          <p class="plan-description">{{ plan.description }}</p>
+          
+          <div class="features-list">
+            <div class="feature-item">
+              <svg class="check-icon" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+              </svg>
+              <span>{{ getPeriodLimitText(plan, 'input') }}</span>
+            </div>
+            <div class="feature-item">
+              <svg class="check-icon" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+              </svg>
+              <span>{{ getPeriodLimitText(plan, 'output') }}</span>
+            </div>
+            <div class="feature-item" *ngIf="plan.weeklyImageLimit > 0">
+              <svg class="check-icon" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+              </svg>
+              <span>{{ getPeriodLimitText(plan, 'image') }}</span>
+            </div>
+            <div class="feature-item" *ngIf="plan.weeklyAudioMinutesLimit > 0">
+              <svg class="check-icon" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+              </svg>
+              <span>{{ getPeriodLimitText(plan, 'audio') }}</span>
+            </div>
+          </div>
+
+          <div class="usage-types">
+            <span *ngFor="let type of plan.allowedUsageTypes.split(',')" 
+                  class="type-tag">
+              {{ type }}
+            </span>
+          </div>
+
+          <div class="plan-limits">
+            <div class="limit-item">
+              <svg class="limit-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+              </svg>
+              <span>Token Ücreti: {{ plan.inputTokenFee }}₺ / 1K token</span>
+            </div>
+            <div class="limit-item" *ngIf="plan.weeklyImageLimit > 0">
+              <svg class="limit-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+              </svg>
+              <span>Görsel Ücreti: {{ plan.imageFee }}₺ / görsel</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Seçim Butonu -->
+        <button class="select-button"
+                [class.selected]="selectedPlan?.id === plan.id"
+                [style.background]="selectedPlan?.id === plan.id ? 'transparent' : plan.colorCode"
+                [style.borderColor]="plan.colorCode"
+                [style.color]="selectedPlan?.id === plan.id ? plan.colorCode : 'white'"
+                (click)="selectPlan(plan)">
+          {{ selectedPlan?.id === plan.id ? 'Seçili Plan' : 'Planı Seç' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Yeni Onay Bölümü -->
+    <div class="confirmation-section" 
+         [class.show]="showConfirmDialog"
+         #confirmationSection>
+      <div class="confirmation-content">
+        <div class="confirmation-header">
+          <h3>Plan Seçiminizi Onaylayın</h3>
+          <button class="close-button" (click)="hideDialog()">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="selected-plan-info">
+          <div class="plan-name" [style.color]="selectedPlan?.colorCode">
+            {{ selectedPlan?.name }}
+          </div>
+          <div class="plan-price">
+            <span class="amount">₺{{ selectedPlan?.price }}</span>
+            <span class="period">/hafta</span>
+          </div>
+        </div>
+
+        <div class="plan-details">
+          <div class="detail-row" *ngIf="selectedPlan && calculatePeriodLimits(selectedPlan).inputTokenLimit > 0">
+            <span class="label">Giriş Tokeni</span>
+            <span class="value">{{ calculatePeriodLimits(selectedPlan).inputTokenLimit | number }}/{{ calculatePeriodLimits(selectedPlan).period }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPlan && calculatePeriodLimits(selectedPlan).outputTokenLimit > 0">
+            <span class="label">Çıkış Tokeni</span>
+            <span class="value">{{ calculatePeriodLimits(selectedPlan).outputTokenLimit | number }}/{{ calculatePeriodLimits(selectedPlan).period }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPlan && calculatePeriodLimits(selectedPlan).imageLimit > 0">
+            <span class="label">Görsel Üretimi</span>
+            <span class="value">{{ calculatePeriodLimits(selectedPlan).imageLimit }} adet/{{ calculatePeriodLimits(selectedPlan).period }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPlan && calculatePeriodLimits(selectedPlan).audioMinutesLimit > 0">
+            <span class="label">Ses Üretimi</span>
+            <span class="value">{{ calculatePeriodLimits(selectedPlan).audioMinutesLimit }} dk/{{ calculatePeriodLimits(selectedPlan).period }}</span>
+          </div>
+        </div>
+
+        <div class="confirmation-note">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <span>Plan haftalık olarak otomatik yenilenir</span>
+        </div>
+
+        <div class="confirmation-actions">
+          <button class="cancel-button" (click)="hideDialog()">
+            Vazgeç
+          </button>
+          <button class="confirm-button" 
+                  [style.background]="selectedPlan?.colorCode"
+                  (click)="confirmPlanSelection()">
+            Planı Onayla
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
