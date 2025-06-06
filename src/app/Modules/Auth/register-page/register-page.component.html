@@ -1,0 +1,196 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="card-header">
+      <h2>Kayıt Ol</h2>
+    </div>
+    <div class="card-content">
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+        <!-- Kişisel Bilgiler -->
+        <div class="form-section">
+          <h3>Kişisel Bilgiler</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="firstName">Ad</label>
+              <input type="text" 
+                     id="firstName"
+                     formControlName="firstName"
+                     placeholder="Adınızı girin"
+                     [class.ng-invalid]="isFieldInvalid('firstName')">
+              <div class="error-message" *ngIf="isFieldInvalid('firstName')">
+                {{ getErrorMessage('firstName') }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="lastName">Soyad</label>
+              <input type="text" 
+                     id="lastName"
+                     formControlName="lastName"
+                     placeholder="Soyadınızı girin"
+                     [class.ng-invalid]="isFieldInvalid('lastName')">
+              <div class="error-message" *ngIf="isFieldInvalid('lastName')">
+                {{ getErrorMessage('lastName') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="userName">Kullanıcı Adı</label>
+              <input type="text" 
+                     id="userName"
+                     formControlName="userName"
+                     placeholder="Kullanıcı adınızı girin"
+                     [class.ng-invalid]="isFieldInvalid('userName')">
+              <div class="error-message" *ngIf="isFieldInvalid('userName')">
+                {{ getErrorMessage('userName') }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="email">E-posta</label>
+              <input type="email" 
+                     id="email"
+                     formControlName="email"
+                     placeholder="E-posta adresinizi girin"
+                     [class.ng-invalid]="isFieldInvalid('email')">
+              <div class="error-message" *ngIf="isFieldInvalid('email')">
+                {{ getErrorMessage('email') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="phoneNumber">Telefon</label>
+              <input type="tel" 
+                     id="phoneNumber"
+                     formControlName="phoneNumber"
+                     placeholder="Telefon numaranızı girin"
+                     [class.ng-invalid]="isFieldInvalid('phoneNumber')">
+              <div class="error-message" *ngIf="isFieldInvalid('phoneNumber')">
+                {{ getErrorMessage('phoneNumber') }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="password">Şifre</label>
+              <div class="password-field">
+                <input [type]="hidePassword ? 'password' : 'text'"
+                       id="password"
+                       formControlName="password"
+                       placeholder="Şifrenizi girin"
+                       [class.ng-invalid]="isFieldInvalid('password')">
+                <button type="button" 
+                        class="toggle-password" 
+                        (click)="hidePassword = !hidePassword">
+                  <i [class]="hidePassword ? 'pi pi-eye' : 'pi pi-eye-slash'"></i>
+                </button>
+              </div>
+              <div class="error-message" *ngIf="isFieldInvalid('password')">
+                {{ getErrorMessage('password') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Adres Bilgileri -->
+        <div class="form-section">
+          <h3>Adres Bilgileri</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="country">Ülke</label>
+              <select id="country"
+                      formControlName="country"
+                      [class.ng-invalid]="isFieldInvalid('country')">
+                <option value="">Ülke seçin</option>
+                <option *ngFor="let country of countries" [value]="country.id">
+                  {{country.name}}
+                </option>
+              </select>
+              <div class="error-message" *ngIf="isFieldInvalid('country')">
+                {{ getErrorMessage('country') }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="region">Bölge</label>
+              <select id="region"
+                      formControlName="region"
+                      [class.ng-invalid]="isFieldInvalid('region')">
+                <option value="">Bölge seçin</option>
+                <option *ngFor="let region of regions[registerForm.get('country')?.value || '']" [value]="region.id">
+                  {{region.name}}
+                </option>
+              </select>
+              <div class="error-message" *ngIf="isFieldInvalid('region')">
+                {{ getErrorMessage('region') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="city">Şehir</label>
+              <input type="text" 
+                     id="city"
+                     formControlName="city"
+                     placeholder="Şehrinizi girin"
+                     [class.ng-invalid]="isFieldInvalid('city')">
+              <div class="error-message" *ngIf="isFieldInvalid('city')">
+                {{ getErrorMessage('city') }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="postalCode">Posta Kodu</label>
+              <input type="text" 
+                     id="postalCode"
+                     formControlName="postalCode"
+                     placeholder="Posta kodunuzu girin"
+                     [class.ng-invalid]="isFieldInvalid('postalCode')">
+              <div class="error-message" *ngIf="isFieldInvalid('postalCode')">
+                {{ getErrorMessage('postalCode') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="address">Adres</label>
+            <input type="text" 
+                   id="address"
+                   formControlName="address"
+                   placeholder="Adresinizi girin"
+                   [class.ng-invalid]="isFieldInvalid('address')">
+            <div class="error-message" *ngIf="isFieldInvalid('address')">
+              {{ getErrorMessage('address') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="button" 
+            [disabled]="!registerForm.valid || isLoading">
+            <i class="pi" [class.pi-user-plus]="!isLoading" [class.pi-spin]="isLoading" [class.pi-spinner]="isLoading"></i>
+            {{ isLoading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol' }}
+          </button>
+
+          <div class="divider">
+            <span>veya</span>
+          </div>
+
+          <button type="button" 
+                  class="button secondary" 
+                  (click)="goToLogin()">
+            <i class="pi pi-sign-in"></i>
+            Giriş Yap
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<p-toast></p-toast>

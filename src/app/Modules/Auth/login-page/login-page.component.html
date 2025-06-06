@@ -1,0 +1,77 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="card-header">
+      <h2>Giriş Yap</h2>
+    </div>
+    <div class="card-content">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <div class="field">
+          <label for="login">E-posta veya Kullanıcı Adı</label>
+          <input type="text" 
+                 id="login"
+                 formControlName="login"
+                 placeholder="E-posta adresinizi veya kullanıcı adınızı girin"
+                 [class.ng-invalid]="isFieldInvalid('login')"
+                 [class.ng-dirty]="isFieldDirty('login')">
+          <div class="error-message" *ngIf="isFieldInvalid('login')">
+            {{ getErrorMessage('login') }}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Şifre</label>
+          <div class="password-field">
+            <input [type]="hidePassword ? 'password' : 'text'"
+                   id="password"
+                   formControlName="password"
+                   placeholder="Şifrenizi girin"
+                   [class.ng-invalid]="isFieldInvalid('password')"
+                   [class.ng-dirty]="isFieldDirty('password')">
+            <button type="button" 
+                    class="toggle-password" 
+                    (click)="hidePassword = !hidePassword">
+              <i [class]="hidePassword ? 'pi pi-eye' : 'pi pi-eye-slash'"></i>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="isFieldInvalid('password')">
+            {{ getErrorMessage('password') }}
+          </div>
+        </div>
+
+        <div class="remember-me">
+          <label class="checkbox-label">
+            <input type="checkbox" 
+                   formControlName="rememberMe"
+                   [checked]="rememberMe">
+            <span>Beni Hatırla</span>
+          </label>
+        </div>
+
+        <div class="forgot-password">
+          <a href="#">Şifremi Unuttum</a>
+        </div>
+
+        <button 
+          type="submit" 
+          class="button" 
+          [disabled]="!isFormValid() || isLoading">
+          <i class="pi" [class.pi-sign-in]="!isLoading" [class.pi-spin]="isLoading" [class.pi-spinner]="isLoading"></i>
+          {{ isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap' }}
+        </button>
+
+        <div class="divider">
+          <span>veya</span>
+        </div>
+
+        <button type="button" 
+                class="button secondary" 
+                (click)="goToRegister()">
+          <i class="pi pi-user-plus"></i>
+          Kayıt Ol
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<p-toast></p-toast>

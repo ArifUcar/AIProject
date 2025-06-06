@@ -1,0 +1,25 @@
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+/* PrimeIcons */
+@import "primeicons/primeicons.css";
+
+/* PrimeFlex */
+@import "primeflex/primeflex.min.css";
+
+/* Global stiller */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
