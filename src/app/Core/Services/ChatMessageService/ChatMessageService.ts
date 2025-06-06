@@ -9,26 +9,11 @@ import { PaginatedResponse } from '../../../Model/Entity/Message/Paginated.Respo
 import { SenderType } from '../../../Model/Enums/SenderType';
 import { DateRangeRequest } from '../../../Model/Entity/Message/DateRange.Request';
 import { BulkDeleteRequest } from '../../../Model/Entity/Message/BulkDelete.Request';
+import { UserMessageStats } from '../../../Model/Entity/Message/UserMessageStats';
+import { AdvancedSearchParams } from '../../../Model/Entity/Message/AdvancedSearchParams';
 
-interface UserMessageStats {
-  totalMessages: number;
-  userMessages: number;
-  aiMessages: number;
-  systemMessages: number;
-  averageMessageLength: number;
-  messagesWithImages: number;
-  dailyMessageDistribution: { [key: string]: number } | null;
-  weeklyMessageDistribution: { [key: string]: number } | null;
-  monthlyMessageDistribution: { [key: string]: number } | null;
-  firstMessageDate: string | null;
-  lastMessageDate: string | null;
-}
 
-interface AdvancedSearchParams {
-  searchTerm: string;
-  caseSensitive?: boolean;
-  includeDeleted?: boolean;
-}
+
 
 @Injectable({
   providedIn: 'root'
