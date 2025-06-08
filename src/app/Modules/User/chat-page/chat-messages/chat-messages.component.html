@@ -1,41 +1,72 @@
 <div class="chat-messages-container">
   <div class="messages-wrapper">
-    <div class="messages-list" 
-         *ngIf="currentSessionId" 
-         #messagesList
-         (scroll)="onScroll()">
-      <div *ngFor="let message of messages" 
-           [ngClass]="{'message': true, 'user-message': message.sender === 'user', 'ai-message': message.sender === 'ai'}">
-        <div class="message-content">
-          {{ message.content }}
-        </div>
-        <div class="message-timestamp">
-          {{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}
+    <!-- Normal Div Scroll (PrimeNG components ile) -->
+    <div 
+      *ngIf="currentSessionId" 
+      #messagesList
+      class="messages-scroll-area"
+      (scroll)="onScroll($event)">
+      
+      <div class="messages-content">
+        <!-- PrimeNG Card for each message -->
+        <div *ngFor="let message of messages" 
+             class="message-wrapper"
+             [ngClass]="{'user-message-wrapper': message.sender === 'user', 'ai-message-wrapper': message.sender === 'ai'}">
+          
+          <div class="message-avatar">
+            <p-avatar 
+              [icon]="getUserAvatarIcon(message.sender)"
+              [style]="{'background-color': getUserAvatarColor(message.sender), 'color': 'white'}"
+              size="normal"
+              shape="circle">
+            </p-avatar>
+          </div>
+
+          <p-card class="message-card">
+            <div class="message-content">
+              {{ message.content }}
+            </div>
+            <div class="message-timestamp">
+              <small>{{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}</small>
+            </div>
+          </p-card>
         </div>
       </div>
     </div>
 
-    <!-- Scroll to Bottom Button -->
-    <button 
+    <!-- PrimeNG Scroll to Bottom Button -->
+    <p-button 
       *ngIf="showScrollToBottomButton" 
       class="scroll-to-bottom-btn"
-      (click)="scrollToBottomSmooth()"
-      title="Aşağı git">
-      <span class="scroll-icon">↓</span>
-    </button>
+      icon="pi pi-angle-down"
+      [rounded]="true"
+      severity="primary"
+      pTooltip="Aşağı git"
+      tooltipPosition="left"
+      (onClick)="scrollToBottomSmooth()">
+    </p-button>
   </div>
 
+  <!-- PrimeNG Input Area -->
   <div class="message-input-wrapper">
-    <div class="message-input-container">
-      <input type="text" 
-             [(ngModel)]="newMessage" 
-             (keyup.enter)="onSendMessage()"
-             placeholder="Mesajınızı yazın..."
-             [disabled]="!currentSessionId">
-      <button (click)="onSendMessage()" 
-              [disabled]="!currentSessionId || !newMessage.trim()">
-        Gönder
-      </button>
+    <div class="message-input-container p-inputgroup">
+      <input 
+        type="text" 
+        pInputText
+        [(ngModel)]="newMessage" 
+        (keyup.enter)="onSendMessage()"
+        placeholder="Mesajınızı yazın..."
+        [disabled]="!currentSessionId"
+        class="message-input">
+      
+      <p-button 
+        label="Gönder"
+        icon="pi pi-send"
+        (onClick)="onSendMessage()" 
+        [disabled]="!currentSessionId || !newMessage.trim()"
+        severity="primary"
+        class="send-button">
+      </p-button>
     </div>
   </div>
 </div>

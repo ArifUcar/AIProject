@@ -482,9 +482,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
     position: relative;
+    z-index: 1;
   }
 
   // Load More Button
@@ -790,7 +789,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 0;
     height: 100vh;
-    overflow: hidden;
+    overflow: visible;
     
     // Subtle texture
     &::before {
@@ -827,6 +826,16 @@
     @keyframes edge-pulse {
       0% { opacity: 0.2; }
       100% { opacity: 0.6; }
+    }
+
+    // Messages container için özel ayar
+    .messages-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      z-index: 1;
     }
   }
 

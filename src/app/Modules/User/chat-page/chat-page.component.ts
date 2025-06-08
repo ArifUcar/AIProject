@@ -343,15 +343,15 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   }
 
   private pollForNewMessages(attempt: number) {
-         if (!this.currentSessionId || attempt >= 5) {
-       // 5 deneme sonrasında fallback
-       if (attempt >= 5) {
-         console.log('AI yanıtı için maksimum deneme sayısına ulaşıldı, simulated response gösteriliyor');
-         this.isWaitingForAIResponse = false;
-         this.simulateAIResponse();
-       }
-       return;
-     }
+    if (!this.currentSessionId || attempt >= 5) {
+      // 5 deneme sonrasında fallback
+      if (attempt >= 5) {
+        console.log('AI yanıtı için maksimum deneme sayısına ulaşıldı, simulated response gösteriliyor');
+        this.isWaitingForAIResponse = false;
+        this.simulateAIResponse();
+      }
+      return;
+    }
 
     const delay = attempt === 0 ? 1000 : 2000; // İlk deneme 1s, sonrakiler 2s
     
@@ -374,18 +374,18 @@ export class ChatPageComponent implements OnInit, OnDestroy {
             
             console.log(`Mesaj sayısı: ${currentCount} → ${newCount}`);
             
-                         if (newCount > currentCount) {
-               // Yeni mesaj(lar) var, güncelle
-               console.log('Yeni mesajlar bulundu, güncelleniyor...');
-               this.messages = newMessages;
-               
-               // Pagination bilgilerini güncelle
-               this.totalMessages = response.totalCount || 0;
-               this.hasMoreMessages = (this.currentPage * this.pageSize) < this.totalMessages;
-               
-               // Başarılı, loading'i durdur
-               this.isWaitingForAIResponse = false;
-               return;
+            if (newCount > currentCount) {
+              // Yeni mesaj(lar) var, güncelle
+              console.log('Yeni mesajlar bulundu, güncelleniyor...');
+              this.messages = newMessages;
+              
+              // Pagination bilgilerini güncelle
+              this.totalMessages = response.totalCount || 0;
+              this.hasMoreMessages = (this.currentPage * this.pageSize) < this.totalMessages;
+              
+              // AI response geldiğinde scroll yapmayı chat-messages component'ine bırak
+              this.isWaitingForAIResponse = false;
+              return;
             } else {
               // Henüz yeni mesaj yok, tekrar dene
               console.log('Henüz yeni mesaj yok, tekrar deneniyor...');
@@ -395,14 +395,14 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           error: (error) => {
             console.error('Mesajları kontrol ederken hata:', error);
             
-                         if (attempt < 2) {
-               // İlk 2 denemede hata varsa tekrar dene
-               this.pollForNewMessages(attempt + 1);
-             } else {
-               // 3. denemede de hata varsa fallback
-               this.isWaitingForAIResponse = false;
-               this.simulateAIResponse();
-             }
+            if (attempt < 2) {
+              // İlk 2 denemede hata varsa tekrar dene
+              this.pollForNewMessages(attempt + 1);
+            } else {
+              // 3. denemede de hata varsa fallback
+              this.isWaitingForAIResponse = false;
+              this.simulateAIResponse();
+            }
           }
         });
     }, delay);
