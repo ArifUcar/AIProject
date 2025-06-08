@@ -5,7 +5,7 @@ import { catchError, retry } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 import { SendMessageRequest } from '../../../Model/Entity/Message/SentMessage.Request';
-import { SendMessageResponse } from '../../../Model/Entity/Message/SentMessage.Response';
+
 import { GetMessagesRequest } from '../../../Model/Entity/Message/GetMessage.Request';
 import { PaginatedResponse } from '../../../Model/Entity/Message/Paginated.Response';
 import { SenderType } from '../../../Model/Enums/SenderType';
@@ -13,6 +13,8 @@ import { DateRangeRequest } from '../../../Model/Entity/Message/DateRange.Reques
 import { BulkDeleteRequest } from '../../../Model/Entity/Message/BulkDelete.Request';
 import { UserMessageStats } from '../../../Model/Entity/Message/UserMessageStats';
 import { AdvancedSearchParams } from '../../../Model/Entity/Message/AdvancedSearchParams';
+import { ChatMessageDto } from '../../../Model/Entity/Message/ChatMessageDto';
+
 
 @Injectable({
   providedIn: 'root'
@@ -65,10 +67,10 @@ export class ChatMessageService {
     });
   }
 
-  sendMessage(request: SendMessageRequest): Observable<SendMessageResponse> {
+  sendMessage(request: SendMessageRequest): Observable<ChatMessageDto> {
     try {
       const headers = this.getHeaders();
-      return this.http.post<SendMessageResponse>(
+      return this.http.post<ChatMessageDto>(
         `${this.apiUrl}/send`, 
         request,
         { headers }
@@ -82,7 +84,7 @@ export class ChatMessageService {
     }
   }
 
-  getBySessionIdMessages(sessionId: string, params: GetMessagesRequest = {}): Observable<PaginatedResponse<SendMessageResponse>> {
+  getBySessionIdMessages(sessionId: string, params: GetMessagesRequest = {}): Observable<PaginatedResponse<ChatMessageDto>> {
     let httpParams = new HttpParams();
     
     if (params.pageNumber) {
@@ -101,7 +103,7 @@ export class ChatMessageService {
       httpParams = httpParams.set('includeDeleted', params.includeDeleted.toString());
     }
 
-    return this.http.get<PaginatedResponse<SendMessageResponse>>(
+    return this.http.get<PaginatedResponse<ChatMessageDto>>(
       `${this.apiUrl}/session/${sessionId}`,
       { 
         params: httpParams,
@@ -116,8 +118,8 @@ export class ChatMessageService {
     return this.http.delete<void>(`${this.apiUrl}/${messageId}`);
   }
 
-  getMessageById(messageId: string): Observable<SendMessageResponse> {
-    return this.http.get<SendMessageResponse>(`${this.apiUrl}/${messageId}`);
+  getMessageById(messageId: string): Observable<ChatMessageDto> {
+    return this.http.get<ChatMessageDto>(`${this.apiUrl}/${messageId}`);
   }
 
   deleteSessionMessages(sessionId: string): Observable<void> {
@@ -128,19 +130,19 @@ export class ChatMessageService {
     return this.http.delete<void>(`${this.apiUrl}/user/userId`);
   }
 
-  getMessagesByDateRange(sessionId: string, dateRange: DateRangeRequest): Observable<SendMessageResponse[]> {
+  getMessagesByDateRange(sessionId: string, dateRange: DateRangeRequest): Observable<ChatMessageDto[]> {
     let httpParams = new HttpParams()
       .set('startDate', dateRange.startDate)
       .set('endDate', dateRange.endDate);
 
-    return this.http.get<SendMessageResponse[]>(
+    return this.http.get<ChatMessageDto[]>(
       `${this.apiUrl}/session/${sessionId}/date-range`,
       { params: httpParams }
     );
   }
 
-  getMessagesBySenderType(sessionId: string, senderType: SenderType): Observable<SendMessageResponse[]> {
-    return this.http.get<SendMessageResponse[]>(
+  getMessagesBySenderType(sessionId: string, senderType: SenderType): Observable<ChatMessageDto[]> {
+    return this.http.get<ChatMessageDto[]>(
       `${this.apiUrl}/session/${sessionId}/sender/${senderType}`
     );
   }
@@ -150,14 +152,14 @@ export class ChatMessageService {
     return this.http.delete<void>(`${this.apiUrl}/bulk`, { body: request });
   }
 
-  searchAdminMessages(searchTerm: string): Observable<SendMessageResponse[]> {
+  searchAdminMessages(searchTerm: string): Observable<ChatMessageDto[]> {
     const params = new HttpParams().set('searchTerm', searchTerm);
-    return this.http.get<SendMessageResponse[]>(`${this.apiUrl}/search`, { params });
+    return this.http.get<ChatMessageDto[]>(`${this.apiUrl}/search`, { params });
   }
 
-  searchUserMessages(searchTerm: string): Observable<SendMessageResponse[]> {
+  searchUserMessages(searchTerm: string): Observable<ChatMessageDto[]> {
     const params = new HttpParams().set('searchTerm', searchTerm);
-    return this.http.get<SendMessageResponse[]>(`${this.apiUrl}/search/user`, { params });
+    return this.http.get<ChatMessageDto[]>(`${this.apiUrl}/search/user`, { params });
   }
 
   getUserMessageCount(params?: {
@@ -234,9 +236,9 @@ export class ChatMessageService {
     );
   }
 
-  searchSessionMessages(sessionId: string, searchTerm: string): Observable<SendMessageResponse[]> {
+  searchSessionMessages(sessionId: string, searchTerm: string): Observable<ChatMessageDto[]> {
     const params = new HttpParams().set('searchTerm', searchTerm);
-    return this.http.get<SendMessageResponse[]>(
+    return this.http.get<ChatMessageDto[]>(
       `${this.apiUrl}/session/${sessionId}/search`,
       { params }
     );
@@ -245,7 +247,7 @@ export class ChatMessageService {
   searchSessionMessagesAdvanced(
     sessionId: string,
     params: AdvancedSearchParams
-  ): Observable<SendMessageResponse[]> {
+  ): Observable<ChatMessageDto[]> {
     let httpParams = new HttpParams()
       .set('searchTerm', params.searchTerm);
     
@@ -256,7 +258,7 @@ export class ChatMessageService {
       httpParams = httpParams.set('includeDeleted', params.includeDeleted.toString());
     }
 
-    return this.http.get<SendMessageResponse[]>(
+    return this.http.get<ChatMessageDto[]>(
       `${this.apiUrl}/session/${sessionId}/search/advanced`,
       { params: httpParams }
     );
