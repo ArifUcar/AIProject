@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 
 export interface CreateSessionRequest {
@@ -62,19 +64,61 @@ export interface UpdateSessionModelRequest {
 export class ChatSessionService {
   private apiUrl = `${environment.apiUrl}/ChatSession`;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
-  createSession(request: CreateSessionRequest): Observable<ChatSessionResponse> {
-    return this.http.post<ChatSessionResponse>(this.apiUrl, request);
+  private handleError(error: any) {
+    console.error('ChatSessionService hatası:', error);
+    return throwError(() => error);
   }
 
-  
+  private getHeaders(): HttpHeaders {
+    // SSR-safe localStorage access
+    let token = '';
+    
+    // Check if we're in browser environment
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        token = localStorage.getItem('accessToken') || '';
+      } catch (error) {
+        console.warn('localStorage access error:', error);
+        token = '';
+      }
+    }
+    
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': token ? `Bearer ${token.trim()}` : 'Bearer '
+    });
+  }
+
+  createSession(request: CreateSessionRequest): Observable<ChatSessionResponse> {
+    return this.http.post<ChatSessionResponse>(
+      this.apiUrl, 
+      request,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   getSessions(params: GetSessionsParams): Observable<ChatSessionListItem[]> {
     const httpParams = new HttpParams()
       .set('pageNumber', params.pageNumber.toString())
       .set('pageSize', params.pageSize.toString());
 
-    return this.http.get<ChatSessionListItem[]>(this.apiUrl, { params: httpParams });
+    return this.http.get<ChatSessionListItem[]>(
+      this.apiUrl, 
+      { 
+        params: httpParams,
+        headers: this.getHeaders()
+      }
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   /**
@@ -101,7 +145,7 @@ export class ChatSessionService {
    * });
    */
   cloneSession(sessionId: string): Observable<ChatSessionResponse> {
-    return this.http.post<ChatSessionResponse>(`${this.apiUrl}/clone/${sessionId}`, {});
+    return this.http.post<ChatSessionResponse>(`${this.apiUrl}/clone/${sessionId}`, {}, { headers: this.getHeaders() });
   }
 
   /**
@@ -133,7 +177,7 @@ export class ChatSessionService {
    * });
    */
   getSessionById(sessionId: string): Observable<ChatSessionResponse> {
-    return this.http.get<ChatSessionResponse>(`${this.apiUrl}/${sessionId}`);
+    return this.http.get<ChatSessionResponse>(`${this.apiUrl}/${sessionId}`, { headers: this.getHeaders() });
   }
 
   /**
@@ -157,7 +201,7 @@ export class ChatSessionService {
    * });
    */
   deleteSession(sessionId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${sessionId}`);
+    return this.http.delete<void>(`${this.apiUrl}/${sessionId}`, { headers: this.getHeaders() });
   }
 
   /**
@@ -185,7 +229,7 @@ export class ChatSessionService {
    * });
    */
   getActiveSessions(): Observable<ChatSessionListItem[]> {
-    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/active`);
+    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/active`, { headers: this.getHeaders() });
   }
 
   /**
@@ -221,7 +265,7 @@ export class ChatSessionService {
       .set('startDate', params.startDate)
       .set('endDate', params.endDate);
 
-    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/date-range`, { params: httpParams });
+    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/date-range`, { params: httpParams, headers: this.getHeaders() });
   }
 
   /**
@@ -252,7 +296,7 @@ export class ChatSessionService {
    * });
    */
   updateSession(request: UpdateSessionRequest): Observable<ChatSessionResponse> {
-    return this.http.put<ChatSessionResponse>(`${this.apiUrl}/Session/Update`, request);
+    return this.http.put<ChatSessionResponse>(`${this.apiUrl}/Session/Update`, request, { headers: this.getHeaders() });
   }
 
   /**
@@ -282,7 +326,7 @@ export class ChatSessionService {
    * });
    */
   updateSessionModel(request: UpdateSessionModelRequest): Observable<ChatSessionResponse> {
-    return this.http.put<ChatSessionResponse>(`${this.apiUrl}/Session/Model/Update`, request);
+    return this.http.put<ChatSessionResponse>(`${this.apiUrl}/Session/Model/Update`, request, { headers: this.getHeaders() });
   }
 
   /**
@@ -306,7 +350,7 @@ export class ChatSessionService {
    * });
    */
   softDeleteSession(sessionId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${sessionId}/soft`);
+    return this.http.delete<void>(`${this.apiUrl}/${sessionId}/soft`, { headers: this.getHeaders() });
   }
 
   /**
@@ -338,6 +382,6 @@ export class ChatSessionService {
    */
   searchSessions(searchTerm: string): Observable<ChatSessionListItem[]> {
     const params = new HttpParams().set('searchTerm', searchTerm);
-    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/search`, { params });
+    return this.http.get<ChatSessionListItem[]>(`${this.apiUrl}/search`, { params: params, headers: this.getHeaders() });
   }
 }

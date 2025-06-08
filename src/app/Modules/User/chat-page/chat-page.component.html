@@ -1,172 +1,212 @@
-<div class="chat-container">
-  <!-- Sol Sidebar - Geçmiş Sohbetler -->
-  <div class="chat-sidebar">
-    <div class="sidebar-header">
-      <h2>
-        <i class="pi pi-comments" style="margin-right: 0.5rem;"></i>
-        Sohbetlerim
-      </h2>
-      <button class="new-chat-button" (click)="createNewSession()" pRipple>
-        <i class="pi pi-plus"></i>
-        Yeni Sohbet
+<div class="chat-page-container" [class.mobile-view]="isMobile">
+  <!-- Error Message (global) -->
+  <div *ngIf="hasError" class="error-banner">
+    <span>⚠️ {{ errorMessage }}</span>
+    <button (click)="errorMessage = ''" class="close-error">×</button>
+  </div>
+
+  <!-- Mobil Header (sadece mobilde görünür) -->
+  <div class="mobile-header" *ngIf="isMobile" [class.show-sessions]="showSessions">
+    <div class="header-content">
+      <button 
+        *ngIf="!showSessions" 
+        class="back-button"
+        (click)="onBackToSessions()">
+        ← Oturumlar
       </button>
-    </div>
-
-
-
-    <div class="chat-search">
-      <span class="p-input-icon-left">
-        <i class="pi pi-search"></i>
-        <input 
-          type="text" 
-          pInputText 
-          placeholder="Sohbet ara..." 
-          (input)="searchChats($event)"
-          pRipple />
-      </span>
-    </div>
-
-    <div class="chat-list">
-      <div *ngIf="isLoading && sessions.length === 0" class="loading-state">
-        <i class="pi pi-spin pi-spinner"></i>
-        <span>Sohbetler yükleniyor...</span>
-      </div>
-      <div *ngFor="let session of filteredSessions" 
-           class="chat-item" 
-           [class.active]="currentSession?.id === session.id"
-           (click)="selectSession(session)"
-           pRipple>
-        <div class="chat-avatar">
-          <i class="pi pi-robot"></i>
-        </div>
-        <div class="chat-info">
-          <div class="chat-name">{{ session.title }}</div>
-          <div class="chat-preview">{{ session.description || 'Yeni sohbet' }}</div>
-        </div>
-        <div class="chat-meta">
-          <span class="chat-time">{{ formatDate(session.createdAt) }}</span>
-          <button class="delete-button" (click)="deleteSession(session.id, $event)" pRipple>
-            <i class="pi pi-trash"></i>
-          </button>
-        </div>
-      </div>
-      <div *ngIf="!isLoading && filteredSessions.length === 0" class="empty-state">
-        <i class="pi pi-comments"></i>
-        <span>Henüz sohbet yok</span>
-        <button class="new-chat-button" (click)="createNewSession()" pRipple>
-          Yeni Sohbet Başlat
-        </button>
+      <h1>{{ showSessions ? 'Sohbet Oturumları' : getCurrentSessionTitle() }}</h1>
+      
+      <!-- Loading indicator in header -->
+      <div *ngIf="isLoading" class="header-loading">
+        <div class="spinner"></div>
       </div>
     </div>
   </div>
 
-  <!-- Sağ Taraf - Aktif Sohbet Alanı -->
-  <div class="chat-main">
-    <div class="chat-header" *ngIf="currentSession">
-      <div class="chat-header-info">
-        <div class="chat-avatar">
-          <i class="pi pi-robot"></i>
-        </div>
-        <div class="chat-title">
-          <h3>{{ currentSession.title }}</h3>
-          <span class="chat-status-text">Aktif</span>
-        </div>
-      </div>
-      <div class="chat-actions">
-        <button class="action-button" pRipple>
-          <i class="pi pi-ellipsis-v"></i>
-        </button>
+  <!-- Sessions Panel -->
+  <div 
+    class="chat-sessions" 
+    [class.mobile-hidden]="isMobile && !showSessions"
+    [class.mobile-visible]="isMobile && showSessions">
+    
+    <!-- Loading overlay for sessions -->
+    <div *ngIf="isLoadingSessions" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner large"></div>
+        <p>Oturumlar yükleniyor...</p>
       </div>
     </div>
 
-    <div *ngIf="!currentSession && !isLoading" class="no-chat-selected">
-      <i class="pi pi-comments"></i>
-      <h3>Sohbet Seçilmedi</h3>
-      <p>Yeni bir sohbet başlatmak veya var olan birini seçmek için sol menüyü kullanın.</p>
-    </div>
+    <app-chat-session
+      [sessions]="sessions"
+      [activeSessionId]="currentSessionId"
+      (sessionSelected)="onSessionSelected($event)"
+      (newSession)="onNewSession()">
+    </app-chat-session>
+  </div>
 
-    <div *ngIf="currentSession" class="chat-messages" #chatMessages>
-        <div *ngIf="isLoading && messages.length === 0" class="loading-state">
-            <i class="pi pi-spin pi-spinner"></i>
-            <span>Mesajlar yükleniyor...</span>
+  <!-- Messages Panel -->
+  <div 
+    class="chat-messages"
+    [class.mobile-hidden]="isMobile && showSessions"
+    [class.mobile-visible]="isMobile && !showSessions">
+    
+    <!-- Message Controls Panel (when session is selected) -->
+    <div *ngIf="currentSessionId && !isMobile" class="message-controls" [class.expanded]="isControlsExpanded">
+      <div class="controls-header">
+        <div class="header-left">
+          <h3>{{ getCurrentSessionTitle() }}</h3>
+          <div class="message-stats">
+            <span class="stat-item">
+              📊 {{ messageStats.total }}
+            </span>
+            <span class="stat-item">
+              👤 {{ messageStats.user }}
+            </span>
+            <span class="stat-item">
+              🤖 {{ messageStats.ai }}
+            </span>
+            <span *ngIf="isFiltered" class="stat-item filtered">
+              🔍 Filtrelenmiş
+            </span>
+          </div>
         </div>
-        <ng-container *ngIf="!isLoading">
-            <div *ngFor="let message of messages; trackBy: trackByMessageId" 
-                 class="message" 
-                 [class.user-message]="message.sender === 1" 
-                 [class.ai-message]="message.sender !== 1">
-                <div class="message-avatar" *ngIf="message.sender !== 1">
-                    <i class="pi pi-robot"></i>
-                </div>
-                <div class="message-content">
-                    <div class="message-text">
-                        <ng-container *ngFor="let part of parseMessageContent(message.messageContent)">
-                            <ng-container *ngIf="!isCodeBlock(part)">
-                                {{ part }}
-                            </ng-container>
-                            <app-code-block 
-                                *ngIf="isCodeBlock(part)"
-                                [code]="getCodeBlockCode(part)"
-                                [language]="getCodeBlockLanguage(part)">
-                            </app-code-block>
-                        </ng-container>
-                    </div>
-                    <!-- Kullanıcı tarafından yüklenen resim varsa göster -->
-                    <img *ngIf="message.sender === 1 && message.hasImage && message.imageUrl" 
-                         [src]="message.imageUrl" 
-                         alt="Yüklenen Resim" 
-                         class="uploaded-image">
-                    <div class="message-time">{{ formatDate(message.sentAt) }}</div>
-                </div>
-                <div class="message-avatar" *ngIf="message.sender === 1">
-                    <i class="pi pi-user"></i>
-                </div>
-            </div>
-        </ng-container>
-        <div *ngIf="!isLoading && messages.length === 0 && currentSession" class="empty-state">
-            <i class="pi pi-comments"></i>
-            <span>Henüz mesaj yok.</span>
-            <p>İlk mesajınızı göndererek sohbete başlayın.</p>
-        </div>
-    </div>
-
-    <div class="chat-input" *ngIf="currentSession">
-      <!-- Seçilen resim önizlemesi -->
-      <div *ngIf="selectedImagePreview" class="selected-image-container">
-        <img [src]="selectedImagePreview" alt="Seçilen Resim" class="image-preview">
-        <button class="remove-image-button" (click)="removeSelectedImage()" pRipple>
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-
-      <div class="input-controls">
-        <button class="action-button file-upload-button" (click)="fileInput.click()" pTooltip="Resim Ekle" tooltipPosition="top" pRipple>
-          <i class="pi pi-paperclip"></i>
-        </button>
-        <input #fileInput type="file" hidden accept="image/*" (change)="onFileSelected($event)">
-        
-        <textarea 
-          pInputTextarea 
-          [(ngModel)]="newMessage"
-          [disabled]="isSending"
-          placeholder="Mesajınızı yazın veya resim ekleyin..."
-          (keydown.enter)="!isSending && sendMessage(); $event.preventDefault()" 
-          class="message-textarea"
-          pRipple>
-        </textarea>
         <button 
-          class="send-button" 
-          (click)="sendMessage()" 
-          [disabled]="isSending || (!newMessage.trim() && !selectedImageBase64)"
-          pRipple>
-          <i class="pi" [ngClass]="isSending ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+          class="toggle-controls-btn"
+          (click)="onToggleControls()"
+          [attr.aria-label]="isControlsExpanded ? 'Arama panelini kapat' : 'Arama panelini aç'">
+          <span class="toggle-icon" [class.rotated]="isControlsExpanded">
+            🔍
+          </span>
+          <span class="toggle-text">
+            {{ isControlsExpanded ? 'Gizle' : 'Ara' }}
+          </span>
         </button>
       </div>
-      <div *ngIf="isSending" class="sending-indicator">
-          <i class="pi pi-spin pi-spinner"></i> Mesaj gönderiliyor...
+
+      <div class="controls-actions" [class.expanded]="isControlsExpanded">
+        <!-- Search -->
+        <div class="search-group">
+          <input 
+            type="text" 
+            placeholder="Mesajlarda ara..." 
+            #searchInput
+            (keyup.enter)="onSearchMessages(searchInput.value)"
+            class="search-input">
+          <button 
+            (click)="onSearchMessages(searchInput.value)"
+            class="search-btn">
+            🔍
+          </button>
+          <button 
+            (click)="searchInput.value = ''; onRefreshMessages()"
+            class="clear-btn">
+            ✖️
+          </button>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+          <button 
+            (click)="onGetTodaysMessages()"
+            class="filter-btn">
+            📅 Bugün
+          </button>
+          <button 
+            (click)="onGetThisWeeksMessages()"
+            class="filter-btn">
+            📅 Bu Hafta
+          </button>
+          <button 
+            (click)="onFilterMessagesBySender('user')"
+            class="filter-btn">
+            👤 Kullanıcı
+          </button>
+          <button 
+            (click)="onFilterMessagesBySender('ai')"
+            class="filter-btn">
+            🤖 AI
+          </button>
+          <button 
+            (click)="onClearDateFilter()"
+            class="filter-btn clear">
+            🔄 Tümü
+          </button>
+        </div>
+
+        <!-- Advanced Controls -->
+        <div class="advanced-controls">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              [checked]="includeDeleted"
+              (change)="onToggleIncludeDeleted()">
+            <span>Silinmiş mesajları dahil et</span>
+          </label>
+          <button 
+            (click)="onRefreshMessages()"
+            class="refresh-btn">
+            🔄 Yenile
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading overlay for messages -->
+    <div *ngIf="isLoadingMessages" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner large"></div>
+        <p>Mesajlar yükleniyor...</p>
+      </div>
+    </div>
+
+    <!-- No session selected state -->
+    <div *ngIf="!currentSessionId && !isLoadingMessages" class="no-session-selected">
+      <div class="no-session-content">
+        <div class="no-session-icon">💬</div>
+        <h3>Sohbet Seçin</h3>
+        <p>Başlamak için sol panelden bir sohbet seçin veya yeni bir sohbet oluşturun.</p>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div *ngIf="currentSessionId" class="messages-container">
+      <app-chat-messages
+        [messages]="messages"
+        [currentSessionId]="currentSessionId"
+        (sendMessage)="onSendMessage($event)">
+      </app-chat-messages>
+
+      <!-- AI Response Loading Indicator -->
+      <div *ngIf="isWaitingForAIResponse" class="ai-response-loading">
+        <div class="loading-indicator">
+          <div class="typing-animation">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="loading-text">AI yanıtı bekleniyor...</span>
+        </div>
+      </div>
+
+      <!-- Load More Button -->
+      <div *ngIf="canLoadMore" class="load-more-container">
+        <button 
+          (click)="onLoadMoreMessages()"
+          class="load-more-btn"
+          [disabled]="isLoadingMessages">
+          <span *ngIf="!isLoadingMessages">📄 Daha Fazla Mesaj Yükle</span>
+          <span *ngIf="isLoadingMessages">
+            <div class="spinner small"></div>
+            Yükleniyor...
+          </span>
+        </button>
+      </div>
+
+      <!-- End of Messages Indicator -->
+      <div *ngIf="hasMessages && !hasMoreMessages && !isFiltered" class="end-messages">
+        <span>🎉 Tüm mesajlar yüklendi</span>
       </div>
     </div>
   </div>
 </div>
-
-<p-toast></p-toast>

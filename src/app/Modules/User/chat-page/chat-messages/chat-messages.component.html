@@ -1,0 +1,41 @@
+<div class="chat-messages-container">
+  <div class="messages-wrapper">
+    <div class="messages-list" 
+         *ngIf="currentSessionId" 
+         #messagesList
+         (scroll)="onScroll()">
+      <div *ngFor="let message of messages" 
+           [ngClass]="{'message': true, 'user-message': message.sender === 'user', 'ai-message': message.sender === 'ai'}">
+        <div class="message-content">
+          {{ message.content }}
+        </div>
+        <div class="message-timestamp">
+          {{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll to Bottom Button -->
+    <button 
+      *ngIf="showScrollToBottomButton" 
+      class="scroll-to-bottom-btn"
+      (click)="scrollToBottomSmooth()"
+      title="Aşağı git">
+      <span class="scroll-icon">↓</span>
+    </button>
+  </div>
+
+  <div class="message-input-wrapper">
+    <div class="message-input-container">
+      <input type="text" 
+             [(ngModel)]="newMessage" 
+             (keyup.enter)="onSendMessage()"
+             placeholder="Mesajınızı yazın..."
+             [disabled]="!currentSessionId">
+      <button (click)="onSendMessage()" 
+              [disabled]="!currentSessionId || !newMessage.trim()">
+        Gönder
+      </button>
+    </div>
+  </div>
+</div>

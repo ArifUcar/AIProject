@@ -1,0 +1,18 @@
+<div class="chat-sessions-container">
+  <div class="sessions-header">
+    <h2>Sohbet Oturumları</h2>
+    <button (click)="onCreateNewSession()" class="new-session-btn">
+      Yeni Sohbet
+    </button>
+  </div>
+
+  <div class="sessions-list">
+    <div *ngFor="let session of sessions" 
+         [ngClass]="{'session-item': true, 'active': session.id === activeSessionId}"
+         (click)="onSelectSession(session.id)">
+      <div class="session-title">{{ session.title }}</div>
+      <div class="session-last-message">{{ session.lastMessage }}</div>
+      <div class="session-timestamp">{{ session.timestamp | date:'short' }}</div>
+    </div>
+  </div>
+</div>
