@@ -150,6 +150,33 @@
     line-height: 1.5;
     margin-bottom: 8px;
     word-wrap: break-word;
+
+    .text-content {
+      margin-bottom: 8px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    // Code block styling
+    ::ng-deep app-code-block {
+      display: block;
+      margin: 8px 0;
+      
+      &:first-child {
+        margin-top: 0;
+      }
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .code-block-wrapper {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    }
   }
 
   .message-timestamp {
@@ -216,89 +243,7 @@
     }
   }
 
-  // Input Area Styles
-  .message-input-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 20px;
-    z-index: 1000;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
-
-    .message-input-container {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      max-width: 1200px;
-      margin: 0 auto;
-
-      .message-input {
-        flex: 1;
-
-        ::ng-deep input {
-          background: rgba(255, 255, 255, 0.05);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          border-radius: 25px;
-          color: white;
-          padding: 14px 18px;
-          font-size: 15px;
-          transition: all 0.3s ease;
-
-          &::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-          }
-
-          &:focus {
-            border-color: #3b82f6;
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-        }
-      }
-
-      .send-button {
-        ::ng-deep .p-button {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          border: none;
-          border-radius: 25px;
-          padding: 14px 24px;
-          font-weight: 600;
-          min-width: 100px;
-          transition: all 0.3s ease;
-
-          &:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-          }
-
-          &:active:not(:disabled) {
-            transform: translateY(0);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-          }
-
-          .p-button-icon {
-            margin-left: 8px;
-          }
-        }
-      }
-    }
-  }
+  // Old input styles removed - replaced with new file upload system
 
   // Responsive design
   @media (max-width: 768px) {
@@ -346,26 +291,371 @@
       }
     }
 
-    .message-input-wrapper {
-      padding: 16px;
+    .message-input-container {
+      padding: 0.75rem;
 
-      .message-input-container {
-        gap: 8px;
-        max-width: none;
+      .input-wrapper {
+        padding: 0.5rem;
 
         .message-input {
-          ::ng-deep input {
-            padding: 12px 16px;
-            font-size: 14px;
+          padding: 0.5rem;
+          font-size: 14px;
+        }
+
+        .send-btn {
+          width: 2rem;
+          height: 2rem;
+        }
+
+        .attach-btn {
+          width: 2rem;
+          height: 2rem;
+        }
+      }
+
+      .file-preview-area {
+        .preview-grid {
+          grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+
+          .preview-item .preview-image-wrapper {
+            width: 60px;
+            height: 60px;
+          }
+        }
+      }
+    }
+  }
+
+  // Typing Indicator Styles
+  .typing-indicator-card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    
+    .typing-text {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #475569;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      
+      .dot {
+        width: 6px;
+        height: 6px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: typing-bounce 1.4s ease-in-out infinite;
+        
+        &:nth-child(1) {
+          animation-delay: 0s;
+        }
+        
+        &:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        
+        &:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+      }
+    }
+  }
+
+  // Typing Animations
+  @keyframes typing-bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-8px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+    }
+    50% {
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+    }
+  }
+}
+
+// Message Input Area with File Upload
+.message-input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  // File Preview Area
+  .file-preview-area {
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+
+      .preview-count {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #cbd5e1;
+        font-weight: 500;
+
+        i {
+          color: #3b82f6;
+        }
+      }
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 0.75rem;
+      max-height: 200px;
+      overflow-y: auto;
+
+      .preview-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .preview-image-wrapper {
+          position: relative;
+          width: 80px;
+          height: 80px;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 2px solid rgba(255, 255, 255, 0.1);
+
+          .preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+
+            .remove-btn {
+              width: 24px;
+              height: 24px;
+            }
+          }
+
+          &:hover .preview-overlay {
+            opacity: 1;
           }
         }
 
-        .send-button {
-          ::ng-deep .p-button {
-            padding: 12px 20px;
-            font-size: 14px;
-            min-width: 80px;
+        .preview-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-top: 0.25rem;
+          text-align: center;
+
+          .file-name {
+            font-size: 0.75rem;
+            color: #e2e8f0;
+            font-weight: 500;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
+
+          .file-size {
+            font-size: 0.625rem;
+            color: #94a3b8;
+          }
+        }
+      }
+    }
+  }
+
+  // Input Wrapper
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .file-upload-section {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .attach-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        
+        ::ng-deep .p-button {
+          background: transparent;
+          border: none;
+          color: #94a3b8;
+
+          &:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+          }
+
+          &:disabled {
+            background: transparent;
+            color: #64748b;
+            opacity: 0.5;
+          }
+        }
+      }
+
+      .file-count-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        z-index: 1;
+      }
+    }
+
+    .message-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      font-size: 15px;
+      padding: 0.75rem;
+
+      &::placeholder {
+        color: #64748b;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+      }
+    }
+
+    .send-btn {
+      width: 2.5rem;
+      height: 2.5rem;
+
+      ::ng-deep .p-button {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border: none;
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+          transform: scale(1.05);
+        }
+
+        &:disabled {
+          background: #374151;
+          color: #6b7280;
+          transform: none;
+        }
+      }
+    }
+  }
+}
+
+// Message Attachments Styling
+.message-attachments {
+  margin-top: 0.75rem;
+
+  .attachment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    max-width: 400px;
+
+    .attachment-item {
+      display: flex;
+      flex-direction: column;
+
+      .attachment-image-wrapper {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        ::ng-deep .p-image {
+          width: 100%;
+          
+          img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+          }
+        }
+      }
+
+      .attachment-info {
+        display: flex;
+        flex-direction: column;
+        margin-top: 0.5rem;
+        padding: 0 0.25rem;
+
+        .attachment-name {
+          font-size: 0.75rem;
+          color: inherit;
+          font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .attachment-size {
+          font-size: 0.625rem;
+          color: rgba(255, 255, 255, 0.6);
+          margin-top: 0.125rem;
         }
       }
     }

@@ -24,12 +24,79 @@
 
           <p-card class="message-card">
             <div class="message-content">
-              {{ message.content }}
+              <!-- Check if message has code blocks -->
+              <ng-container *ngIf="hasCodeBlocks(message.content); else plainText">
+                <!-- Render parsed content with code blocks -->
+                <ng-container *ngFor="let part of parseMessageContent(message.content)">
+                  <div *ngIf="part.type === 'text'" class="text-content">
+                    {{ part.content }}
+                  </div>
+                  <app-code-block 
+                    *ngIf="part.type === 'code'"
+                    [code]="part.content"
+                    [language]="part.language || 'text'">
+                  </app-code-block>
+                </ng-container>
+              </ng-container>
+              
+              <!-- Plain text content -->
+              <ng-template #plainText>
+                <div class="text-content">
+                  {{ message.content }}
+                </div>
+              </ng-template>
+
+              <!-- Message Attachments -->
+              <div class="message-attachments" *ngIf="message.attachments && message.attachments.length > 0">
+                <div class="attachment-grid">
+                  <div class="attachment-item" *ngFor="let attachment of message.attachments">
+                    <div class="attachment-image-wrapper">
+                      <p-image 
+                        [src]="attachment.url" 
+                        [alt]="attachment.name"
+                        [preview]="true"
+                        class="attachment-image">
+                      </p-image>
+                    </div>
+                    <div class="attachment-info">
+                      <span class="attachment-name">{{ attachment.name }}</span>
+                      <span class="attachment-size">{{ getFileSizeText(attachment.size) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="message-timestamp">
               <small>{{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}</small>
             </div>
           </p-card>
+        </div>
+
+        <!-- AI Typing Indicator -->
+        <div class="message-wrapper ai-message" *ngIf="isLoading">
+          <div class="message-avatar">
+            <p-avatar 
+              [icon]="getUserAvatarIcon('ai')"
+              [style]="{'background-color': getUserAvatarColor('ai'), 'color': 'white'}"
+              size="normal"
+              shape="circle">
+            </p-avatar>
+          </div>
+          <div class="message-bubble ai-bubble">
+            <p-card class="message-card typing-indicator-card">
+              <div class="typing-indicator">
+                <div class="typing-text">
+                  <i class="pi pi-android" style="margin-right: 8px; opacity: 0.8;"></i>
+                  AI yanıtlıyor
+                </div>
+                <div class="typing-dots">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+              </div>
+            </p-card>
+          </div>
         </div>
       </div>
     </div>
@@ -47,25 +114,101 @@
     </p-button>
   </div>
 
-  <!-- PrimeNG Input Area -->
-  <div class="message-input-wrapper">
-    <div class="message-input-container p-inputgroup">
+  <!-- Message Input Area -->
+  <div class="message-input-container">
+    <!-- File Preview Area -->
+    <div class="file-preview-area" *ngIf="selectedFiles.length > 0">
+      <div class="preview-header">
+        <span class="preview-count">
+          <i class="pi pi-images"></i>
+          {{ selectedFiles.length }}/{{ maxFiles }} fotoğraf seçildi
+        </span>
+        <p-button 
+          icon="pi pi-times" 
+          [text]="true"
+          [rounded]="true"
+          size="small"
+          severity="secondary"
+          (click)="clearAllFiles()"
+          pTooltip="Tümünü kaldır">
+        </p-button>
+      </div>
+      
+      <div class="preview-grid">
+        <div class="preview-item" *ngFor="let file of selectedFiles">
+          <div class="preview-image-wrapper">
+            <img [src]="file.preview" [alt]="file.name" class="preview-image">
+            <div class="preview-overlay">
+              <p-button 
+                icon="pi pi-times" 
+                [rounded]="true"
+                size="small"
+                severity="danger"
+                (click)="onFileRemove(file.id)"
+                class="remove-btn">
+              </p-button>
+            </div>
+          </div>
+          <div class="preview-info">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">{{ getFileSizeText(file.size) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-wrapper">
+      <!-- File Upload Button -->
+      <div class="file-upload-section">
+        <input 
+          type="file" 
+          #fileInput
+          multiple
+          accept="image/*"
+          [disabled]="selectedFiles.length >= maxFiles"
+          (change)="onFileSelect($event)"
+          style="display: none;">
+        
+        <p-button 
+          icon="pi pi-paperclip"
+          [text]="true"
+          [rounded]="true"
+          size="small"
+          severity="secondary"
+          [disabled]="selectedFiles.length >= maxFiles"
+          (click)="fileInput.click()"
+          [pTooltip]="selectedFiles.length >= maxFiles ? 'Maksimum dosya sayısına ulaşıldı' : 'Fotoğraf ekle (maks. ' + maxFiles + ')'"
+          tooltipPosition="top"
+          class="attach-btn">
+        </p-button>
+        
+        <p-badge 
+          *ngIf="selectedFiles.length > 0"
+          [value]="selectedFiles.length.toString()"
+          severity="info"
+          class="file-count-badge">
+        </p-badge>
+      </div>
+
+      <!-- Text Input -->
       <input 
         type="text" 
-        pInputText
-        [(ngModel)]="newMessage" 
-        (keyup.enter)="onSendMessage()"
+        pInputText 
+        [(ngModel)]="newMessage"
         placeholder="Mesajınızı yazın..."
-        [disabled]="!currentSessionId"
-        class="message-input">
-      
+        (keydown.enter)="onSendMessage()"
+        class="message-input"
+        [disabled]="isLoading">
+
+      <!-- Send Button -->
       <p-button 
-        label="Gönder"
         icon="pi pi-send"
-        (onClick)="onSendMessage()" 
-        [disabled]="!currentSessionId || !newMessage.trim()"
-        severity="primary"
-        class="send-button">
+        [disabled]="!newMessage.trim() && selectedFiles.length === 0 || isLoading"
+        (click)="onSendMessage()"
+        [raised]="true"
+        [rounded]="true"
+        severity="info"
+        class="send-btn">
       </p-button>
     </div>
   </div>

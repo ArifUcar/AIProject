@@ -1,18 +1,108 @@
 <div class="chat-sessions-container">
+  <!-- Header Section -->
   <div class="sessions-header">
-    <h2>Sohbet Oturumları</h2>
-    <button (click)="onCreateNewSession()" class="new-session-btn">
-      Yeni Sohbet
-    </button>
+    <h2 class="header-title">
+      <i class="pi pi-comments" style="margin-right: 8px;"></i>
+      Sohbetler
+    </h2>
+    
+    <p-button 
+      class="new-session-btn"
+      label="Yeni Sohbet"
+      icon="pi pi-plus"
+      [raised]="true"
+      [rounded]="true"
+      severity="info"
+      (onClick)="onCreateNewSession()"
+      pTooltip="Yeni sohbet başlat"
+      tooltipPosition="bottom">
+    </p-button>
   </div>
 
-  <div class="sessions-list">
-    <div *ngFor="let session of sessions" 
-         [ngClass]="{'session-item': true, 'active': session.id === activeSessionId}"
-         (click)="onSelectSession(session.id)">
-      <div class="session-title">{{ session.title }}</div>
-      <div class="session-last-message">{{ session.lastMessage }}</div>
-      <div class="session-timestamp">{{ session.timestamp | date:'short' }}</div>
+  <p-divider></p-divider>
+
+  <!-- Sessions List -->
+  <p-scrollPanel class="sessions-scroll" [style]="{'height': 'calc(100vh - 180px)'}">
+    <div class="sessions-list">
+      <ng-container *ngFor="let session of sessions; trackBy: trackBySessionId">
+        <p-card 
+          class="session-card"
+          [class.active]="session.id === activeSessionId"
+          (click)="onSelectSession(session.id)"
+          [pTooltip]="session.title"
+          tooltipPosition="right"
+          pRipple>
+          
+          <div class="session-content">
+            <!-- Avatar Section -->
+            <div class="session-avatar-section">
+              <p-avatar 
+                [label]="getSessionInitials(session.title)"
+                [style]="{'background-color': getStatusColor(session.isOnline), 'color': 'white'}"
+                size="large"
+                shape="circle">
+              </p-avatar>
+              
+              <!-- Online Status Indicator -->
+              <div 
+                class="status-indicator" 
+                [class.online]="session.isOnline"
+                *ngIf="session.isOnline">
+              </div>
+            </div>
+
+            <!-- Session Info -->
+            <div class="session-info">
+              <div class="session-header">
+                <h3 class="session-title">{{ session.title }}</h3>
+                <div class="session-meta">
+                  <span class="session-timestamp">
+                    {{ formatTimestamp(session.timestamp) }}
+                  </span>
+                  <p-badge 
+                    *ngIf="session.unreadCount && session.unreadCount > 0"
+                    [value]="session.unreadCount.toString()"
+                    severity="info"
+                    size="small">
+                  </p-badge>
+                </div>
+              </div>
+              
+              <p class="session-last-message">
+                <i class="pi pi-comment" style="margin-right: 4px; opacity: 0.7;"></i>
+                {{ session.lastMessage }}
+              </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="session-actions" *ngIf="session.id === activeSessionId">
+              <p-button 
+                icon="pi pi-ellipsis-v"
+                [text]="true"
+                [rounded]="true"
+                size="small"
+                severity="secondary"
+                pTooltip="Seçenekler"
+                (click)="$event.stopPropagation()">
+              </p-button>
+            </div>
+          </div>
+        </p-card>
+      </ng-container>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!sessions || sessions.length === 0">
+        <i class="pi pi-comments empty-icon"></i>
+        <h3>Henüz sohbet yok</h3>
+        <p>Yeni bir sohbet başlatarak AI ile konuşmaya başlayın</p>
+        <p-button 
+          label="İlk Sohbeti Başlat"
+          icon="pi pi-plus"
+          [raised]="true"
+          severity="info"
+          (onClick)="onCreateNewSession()">
+        </p-button>
+      </div>
     </div>
-  </div>
+  </p-scrollPanel>
 </div>
