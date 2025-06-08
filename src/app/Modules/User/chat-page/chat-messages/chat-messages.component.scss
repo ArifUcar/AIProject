@@ -146,36 +146,15 @@
   }
 
   .message-content {
-    font-size: 15px;
-    line-height: 1.5;
-    margin-bottom: 8px;
-    word-wrap: break-word;
-
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    
     .text-content {
-      margin-bottom: 8px;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-
-    // Code block styling
-    ::ng-deep app-code-block {
-      display: block;
-      margin: 8px 0;
-      
-      &:first-child {
-        margin-top: 0;
-      }
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .code-block-wrapper {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
     }
   }
 
@@ -660,4 +639,32 @@
       }
     }
   }
+}
+
+.message-image {
+  margin: 8px 0;
+  max-width: 100%;
+  
+  .content-image {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    ::ng-deep img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+  }
+  
+  &:not(:last-child) {
+    margin-bottom: 16px;
+  }
+}
+
+.error-image {
+  opacity: 0.5;
+  filter: grayscale(100%);
 }

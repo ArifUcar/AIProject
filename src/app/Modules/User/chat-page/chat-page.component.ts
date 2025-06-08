@@ -26,6 +26,10 @@ interface Message {
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  hasImage: boolean;
+  imageUrl?: string[];
+  messageStatus: number;
+  isActive: boolean;
 }
 
 @Component({
@@ -289,7 +293,10 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       id: Date.now(),
       content: message,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
+      hasImage: false,
+      messageStatus: 0,
+      isActive: true
     };
     this.messages.push(userMessage); // Add to end (oldest first ordering)
 
@@ -373,6 +380,8 @@ export class ChatPageComponent implements OnInit, OnDestroy {
             const newCount = newMessages.length;
             
             console.log(`Mesaj sayısı: ${currentCount} → ${newCount}`);
+
+            console.log('Yeni mesajlar:', newMessages);
             
             if (newCount > currentCount) {
               // Yeni mesaj(lar) var, güncelle
@@ -413,7 +422,10 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       id: Date.now(),
       content: 'Özür dilerim, şu anda AI servisiyle bağlantı kuramıyorum. Lütfen daha sonra tekrar deneyin.',
       sender: 'ai',
-      timestamp: new Date()
+      timestamp: new Date(),
+      hasImage: false,
+      messageStatus: 0,
+      isActive: true
     };
     this.messages.push(aiResponse); // Add to end (oldest first ordering)
   }
@@ -653,22 +665,57 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
   // Enhanced mapping with better timestamp handling
   private mapMessagesToLocal(messages: ChatMessageDto[]): Message[] {
+    console.log('Gelen ham mesajlar:', messages);
+    
     return messages
       .sort((a, b) => {
-        // Use createdDate first, fallback to sentAt if createdDate is not available
         const dateA = new Date(a.createdDate || a.sentAt).getTime();
         const dateB = new Date(b.createdDate || b.sentAt).getTime();
-        return dateA - dateB; // Sort by date (oldest first)
+        return dateA - dateB;
       })
-      .map((msg, index) => ({
-        id: parseInt(msg.id) || index,
-        content: msg.content || 'Mesaj içeriği bulunamadı',
-        sender: msg.senderType === 1 ? 'user' : 'ai',
-        timestamp: new Date(msg.createdDate || msg.sentAt),
-        hasImage: msg.hasImage,
-        messageStatus: msg.messageStatus,
-        isActive: msg.isActive
-      }));
+      .map((msg, index) => {
+        // Resim URL'lerini kontrol et ve işle
+        let processedImageUrls: string[] = [];
+        
+        // imageUrl kontrolü
+        if (msg.imageUrl && Array.isArray(msg.imageUrl) && msg.imageUrl.length > 0) {
+          console.log(`Mesaj ${msg.id} için ham resim URL'leri:`, msg.imageUrl);
+          
+          processedImageUrls = msg.imageUrl
+            .filter(url => url && typeof url === 'string' && url.trim() !== '') // Boş olmayan URL'leri filtrele
+            .map(url => {
+              try {
+                const tokenizedUrl = this.chatMessageService.getImageUrlWithToken(url);
+                console.log(`Mesaj ${msg.id} - İşlenmiş URL:`, tokenizedUrl);
+                return tokenizedUrl;
+              } catch (error) {
+                console.error(`Mesaj ${msg.id} - URL işleme hatası:`, error);
+                return url;
+              }
+            })
+            .filter(url => url !== ''); // Boş sonuçları filtrele
+        }
+
+        // hasImage değerini URL'lerin varlığına göre belirle
+        const hasImage = processedImageUrls.length > 0;
+        
+        if (hasImage) {
+          console.log(`Mesaj ${msg.id} için işlenmiş URL'ler:`, processedImageUrls);
+        }
+
+        const mappedMessage: Message = {
+          id: parseInt(msg.id) || index,
+          content: msg.content || 'Mesaj içeriği bulunamadı',
+          sender: msg.senderType === 1 ? 'user' : 'ai',
+          timestamp: new Date(msg.createdDate || msg.sentAt),
+          hasImage: hasImage,
+          imageUrl: processedImageUrls,
+          messageStatus: msg.messageStatus,
+          isActive: msg.isActive
+        };
+
+        return mappedMessage;
+      });
   }
 
   // Mobilde oturumlara geri dön

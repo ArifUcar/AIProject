@@ -1,6 +1,8 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 // PrimeNG imports
 import { ButtonModule } from 'primeng/button';
@@ -24,22 +26,26 @@ interface Message {
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  hasImage?: boolean;
+  imageUrl?: string[];
+  messageStatus?: number;
+  isActive?: boolean;
   attachments?: AttachedFile[];
 }
 
 interface AttachedFile {
-  id: string;
+  id?: string;
   name: string;
   size: number;
   type: string;
-  url: string;
+  url?: string;
   preview?: string;
 }
 
 interface ParsedContent {
   type: 'text' | 'code';
   content: string;
-  language?: string;
+  language: string | null; // code tipi için dolu, text tipi için null
 }
 
 @Component({
@@ -64,7 +70,7 @@ interface ParsedContent {
   templateUrl: './chat-messages.component.html',
   styleUrl: './chat-messages.component.scss'
 })
-export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, OnChanges {
+export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, OnChanges, OnInit {
   @Input() messages: Message[] = [];
   @Input() currentSessionId: string | null = null;
   @Input() isLoading: boolean = false; // AI yanıt beklerken true olacak
@@ -86,7 +92,18 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
   private lastScrollTop = 0;
   private previousMessageCount = 0;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  // Resim yükleme ve önbellekleme için sabitler
+  private readonly MAX_IMAGE_WIDTH = 1200; // piksel
+  private readonly MAX_IMAGE_HEIGHT = 800; // piksel
+  private readonly DEFAULT_ERROR_IMAGE = 'assets/images/image-error-placeholder.png';
+  private readonly imageLoadErrors = new Set<string>();
+  private readonly imageCache = new Map<string, SafeUrl>();
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+    private sanitizer: DomSanitizer
+  ) {}
 
   ngAfterViewInit() {
     this.isViewInitialized = true;
@@ -101,6 +118,17 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
   ngAfterViewChecked() {
     // Sadece yeni mesaj geldiğinde ve kullanıcı en alttaysa scroll yap
     // Sürekli scroll etmeyi durdur
+  }
+
+  ngOnInit() {
+    // Mevcut resimleri yükle
+    this.messages.forEach(message => {
+      if (message.hasImage && message.imageUrl) {
+        message.imageUrl.forEach(url => {
+          this.loadImage(url);
+        });
+      }
+    });
   }
 
   onSendMessage() {
@@ -248,7 +276,8 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
         if (textContent) {
           parts.push({
             type: 'text',
-            content: textContent
+            content: textContent,
+            language: null
           });
         }
       }
@@ -269,7 +298,8 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
       if (remainingContent) {
         parts.push({
           type: 'text',
-          content: remainingContent
+          content: remainingContent,
+          language: null
         });
       }
     }
@@ -278,7 +308,8 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
     if (parts.length === 0) {
       parts.push({
         type: 'text',
-        content: content
+        content: content,
+        language: null
       });
     }
 
@@ -349,5 +380,240 @@ export class ChatMessagesComponent implements AfterViewInit, AfterViewChecked, O
 
   getRemainingFileSlots(): number {
     return this.maxFiles - this.selectedFiles.length;
+  }
+
+  // Resim yükleme işlemi
+  private loadImage(url: string) {
+    if (!url || this.imageCache.has(url)) {
+      return;
+    }
+
+    try {
+      // Token al
+      const token = this.getToken();
+      console.log('Resim yükleme için token durumu:', token ? 'Mevcut' : 'Bulunamadı');
+
+      // URL'yi hazırla
+      let finalUrl = url;
+      if (token && !url.includes('access_token=')) {
+        try {
+          const urlObj = new URL(url);
+          urlObj.searchParams.set('access_token', token);
+          finalUrl = urlObj.toString();
+          console.log('Token URL\'ye eklendi');
+        } catch (error) {
+          console.error('URL düzenlenirken hata:', error);
+        }
+      }
+
+      // Resmi yükle
+      fetch(finalUrl, {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {}
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.blob();
+      })
+      .then(blob => this.processImage(blob, url))
+      .catch(error => {
+        console.error('Resim yüklenirken hata:', error);
+        this.imageLoadErrors.add(url);
+      });
+
+    } catch (error) {
+      console.error('Resim yükleme işlemi başlatılırken hata:', error);
+      this.imageLoadErrors.add(url);
+    }
+  }
+
+  private processImage(blob: Blob, originalUrl: string) {
+    try {
+      // Resmi optimize et
+      this.optimizeImage(blob).then(optimizedBlob => {
+        const objectUrl = URL.createObjectURL(optimizedBlob);
+        const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
+        this.imageCache.set(originalUrl, safeUrl);
+        console.log('Resim başarıyla yüklendi ve optimize edildi');
+      }).catch(error => {
+        console.error('Resim optimizasyonu sırasında hata:', error);
+        // Optimizasyon başarısız olursa orijinal blobu kullan
+        const objectUrl = URL.createObjectURL(blob);
+        const safeUrl = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
+        this.imageCache.set(originalUrl, safeUrl);
+      });
+    } catch (error) {
+      console.error('Blob işlenirken hata:', error);
+      this.imageLoadErrors.add(originalUrl);
+    }
+  }
+
+  // Resim optimizasyonu
+  private async optimizeImage(blob: Blob): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+
+          // En boy oranını koru
+          if (width > this.MAX_IMAGE_WIDTH) {
+            height *= this.MAX_IMAGE_WIDTH / width;
+            width = this.MAX_IMAGE_WIDTH;
+          }
+          if (height > this.MAX_IMAGE_HEIGHT) {
+            width *= this.MAX_IMAGE_HEIGHT / height;
+            height = this.MAX_IMAGE_HEIGHT;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context oluşturulamadı'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            blob => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Blob oluşturulamadı'));
+              }
+            },
+            'image/jpeg',
+            0.85 // Kalite
+          );
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error('Resim yüklenemedi'));
+      };
+
+      img.src = URL.createObjectURL(blob);
+    });
+  }
+
+  // Token alma işlemi
+  private getToken(): string {
+    try {
+      // LocalStorage'dan token'ı al
+      let token = localStorage.getItem('token');
+      if (!token) {
+        token = localStorage.getItem('accessToken');
+      }
+      if (!token) {
+        token = sessionStorage.getItem('token');
+      }
+      if (!token) {
+        token = sessionStorage.getItem('accessToken');
+      }
+      
+      if (!token) {
+        console.warn('Token bulunamadı (localStorage ve sessionStorage kontrol edildi)');
+        return '';
+      }
+
+      // Token formatını kontrol et ve düzenle
+      token = token.trim();
+      if (token.startsWith('Bearer ')) {
+        token = token.substring(7).trim();
+      }
+      if (token.startsWith('"') && token.endsWith('"')) {
+        token = token.slice(1, -1);
+      }
+
+      console.log('Token bulundu ve formatlandı');
+      return token;
+    } catch (error) {
+      console.error('Token alınırken hata:', error);
+      return '';
+    }
+  }
+
+  // Resim URL'sini al
+  getImageUrl(url: string | undefined): SafeUrl | string {
+    if (!url) return this.DEFAULT_ERROR_IMAGE;
+    
+    if (this.imageLoadErrors.has(url)) {
+      return this.DEFAULT_ERROR_IMAGE;
+    }
+
+    const cachedUrl = this.imageCache.get(url);
+    if (cachedUrl) {
+      return cachedUrl;
+    }
+
+    // Resim henüz yüklenmediyse yüklemeyi başlat
+    this.loadImage(url);
+    return this.DEFAULT_ERROR_IMAGE; // Yüklenene kadar default resmi göster
+  }
+
+  // Resim tıklama işleyicisi
+  onImageClick(url: string): void {
+    if (this.imageLoadErrors.has(url)) {
+      console.log('Hatalı resme tıklama engellendi:', url);
+      return;
+    }
+    window.open(url, '_blank');
+  }
+
+  // Resim yükleme hatası işleyicisi
+  onImageError(event: any, url: string): void {
+    console.error('Resim yüklenemedi:', url);
+    this.imageLoadErrors.add(url);
+    
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = this.DEFAULT_ERROR_IMAGE;
+    imgElement.classList.add('error-image');
+    imgElement.alt = 'Resim yüklenemedi';
+  }
+
+  // Resim yükleme başarılı
+  onImageLoad(url: string): void {
+    console.log('Resim başarıyla görüntülendi:', url);
+    this.imageLoadErrors.delete(url);
+  }
+
+  // URL'nin resim URL'si olup olmadığını kontrol et
+  isImageUrl(content: string | undefined): boolean {
+    if (!content) return false;
+    
+    try {
+      // URL formatını kontrol et
+      const url = new URL(content);
+      
+      // Yaygın resim uzantılarını kontrol et
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+      const pathname = url.pathname.toLowerCase();
+      
+      // Uzantı kontrolü
+      const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext));
+      
+      // Content-type kontrolü (varsa)
+      const contentType = url.searchParams.get('content-type') || url.searchParams.get('type');
+      const hasImageContentType = contentType ? contentType.toLowerCase().startsWith('image/') : false;
+      
+      return hasImageExtension || hasImageContentType;
+    } catch {
+      // Base64 resim kontrolü
+      if (content.startsWith('data:image/')) {
+        return true;
+      }
+      
+      // Direkt dosya uzantısı kontrolü
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+      return imageExtensions.some(ext => content.toLowerCase().endsWith(ext));
+    }
   }
 }

@@ -41,9 +41,44 @@
               
               <!-- Plain text content -->
               <ng-template #plainText>
-                <div class="text-content">
-                  {{ message.content }}
-                </div>
+                <!-- İçerik kontrolü -->
+                <ng-container *ngIf="isImageUrl(message.content) || (message.hasImage && message.imageUrl && message.imageUrl.length > 0); else textOnly">
+                  <!-- Content'teki resim -->
+                  <div class="message-image" *ngIf="isImageUrl(message.content)">
+                    <p-image 
+                      [src]="getImageUrl(message.content)"
+                      [alt]="'Message Image'"
+                      [preview]="true"
+                      (onError)="onImageError($event, message.content)"
+                      (onLoad)="onImageLoad(message.content)"
+                      class="content-image">
+                    </p-image>
+                  </div>
+                  
+                  <!-- ImageUrl dizisindeki resimler -->
+                  <div class="message-image" *ngFor="let imgUrl of message.imageUrl">
+                    <p-image 
+                      [src]="getImageUrl(imgUrl)"
+                      [alt]="'Message Image'"
+                      [preview]="true"
+                      (onError)="onImageError($event, imgUrl)"
+                      (onLoad)="onImageLoad(imgUrl)"
+                      class="content-image">
+                    </p-image>
+                  </div>
+                  
+                  <!-- Eğer content bir resim değilse, metni göster -->
+                  <div class="text-content" *ngIf="!isImageUrl(message.content)">
+                    {{ message.content }}
+                  </div>
+                </ng-container>
+                
+                <!-- Sadece metin -->
+                <ng-template #textOnly>
+                  <div class="text-content">
+                    {{ message.content }}
+                  </div>
+                </ng-template>
               </ng-template>
 
               <!-- Message Attachments -->
@@ -144,7 +179,7 @@
                 [rounded]="true"
                 size="small"
                 severity="danger"
-                (click)="onFileRemove(file.id)"
+                (click)="onFileRemove(file.id || '')"
                 class="remove-btn">
               </p-button>
             </div>

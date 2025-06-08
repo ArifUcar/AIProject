@@ -263,4 +263,64 @@ export class ChatMessageService {
       { params: httpParams }
     );
   }
+
+  private getToken(): string {
+    try {
+      if (isPlatformBrowser(this.platformId)) {
+        // Önce token'ı al
+        const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+        
+        if (!token) {
+          console.warn('Token bulunamadı');
+          return '';
+        }
+
+        // Token formatını kontrol et
+        if (token.startsWith('Bearer ')) {
+          return token.replace('Bearer ', '').trim();
+        }
+
+        return token.trim();
+      }
+      return '';
+    } catch (error) {
+      console.error('Token alınırken hata:', error);
+      return '';
+    }
+  }
+
+  getImageUrlWithToken(imageUrl: string): string {
+    try {
+      if (!imageUrl) return '';
+      
+      // URL'yi decode et
+      const decodedUrl = decodeURIComponent(imageUrl);
+      
+      // URL'de zaten token var mı kontrol et
+      if (decodedUrl.includes('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9')) {
+        console.log('URL zaten token içeriyor');
+        return decodedUrl;
+      }
+
+      // Token yoksa ekle
+      const token = this.getToken();
+      console.log('Alınan token:', token ? 'Token var' : 'Token yok');
+      
+      if (!token) {
+        console.warn('Token bulunamadı, orijinal URL döndürülüyor');
+        return decodedUrl;
+      }
+
+      // URL'yi oluştur
+      const url = new URL(decodedUrl);
+      url.searchParams.set('access_token', token);
+      
+      console.log('Token eklenen URL oluşturuldu');
+      return url.toString();
+      
+    } catch (error) {
+      console.error('URL işlenirken hata:', error);
+      return imageUrl;
+    }
+  }
 }
