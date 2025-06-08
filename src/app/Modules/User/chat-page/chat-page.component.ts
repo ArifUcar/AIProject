@@ -10,8 +10,8 @@ import { ChatMessageService } from '../../../Core/Services/ChatMessageService/Ch
 
 // Models
 import { SendMessageRequest } from '../../../Model/Entity/Message/SentMessage.Request';
-import { SendMessageResponse } from '../../../Model/Entity/Message/SentMessage.Response';
 import { SenderType } from '../../../Model/Enums/SenderType';
+import { ChatMessageDto } from '../../../Model/Entity/Message/ChatMessageDto';
 
 interface ChatSession {
   id: string;
@@ -305,7 +305,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
         finalize(() => this.isSendingMessage = false)
       )
       .subscribe({
-        next: (response: SendMessageResponse) => {
+        next: (response: ChatMessageDto) => {
           console.log('Mesaj gönderildi:', response);
           
           // Yanıt başarılı ise session listesindeki son mesajı güncelle
@@ -652,7 +652,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   }
 
   // Enhanced mapping with better timestamp handling
-  private mapMessagesToLocal(messages: SendMessageResponse[]): Message[] {
+  private mapMessagesToLocal(messages: ChatMessageDto[]): Message[] {
     return messages
       .sort((a, b) => {
         // Use createdDate first, fallback to sentAt if createdDate is not available
