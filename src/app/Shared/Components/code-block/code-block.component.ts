@@ -28,6 +28,8 @@ import { TooltipModule } from 'primeng/tooltip';
       border-radius: 0.5rem;
       margin: 0.5rem 0;
       overflow: hidden;
+      width: 100%;
+      max-width: 100%;
     }
 
     .code-block-header {
@@ -55,6 +57,35 @@ import { TooltipModule } from 'primeng/tooltip';
       overflow-x: auto;
       color: #e2e8f0;
       white-space: pre;
+    }
+
+    @media (max-width: 768px) {
+      .code-block-wrapper {
+        margin: 0.25rem 0 !important;
+        width: 100% !important;
+        max-width: calc(100vw - 2rem) !important;
+        box-sizing: border-box !important;
+      }
+      
+      .code-block {
+        font-size: 1.1rem !important;
+        padding: 0.75rem !important;
+        line-height: 1.6 !important;
+        overflow-x: auto !important;
+        word-break: break-all !important;
+        white-space: pre-wrap !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      
+      .code-language {
+        font-size: 0.8rem !important;
+      }
+      
+      .code-block-header {
+        padding: 0.4rem 0.75rem !important;
+        box-sizing: border-box !important;
+      }
     }
 
     :host ::ng-deep {

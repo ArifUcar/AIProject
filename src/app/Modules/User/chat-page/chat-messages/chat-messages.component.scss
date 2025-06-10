@@ -45,11 +45,11 @@
   }
 
   .messages-content {
-    padding: 12px 20px; // Desktop için normale döndürdüm
+    padding: 12px 20px; // Desktop için normal
     display: flex;
     flex-direction: column;
-    gap: 16px; // Desktop için normale döndürdüm
-    margin-bottom: 60px; // 40px'den 60px'e çıkardım (uzun mesajlar için)
+    gap: 16px; // Desktop için normal
+    margin-bottom: 60px; // Desktop için
   }
 
   .message-wrapper {
@@ -127,6 +127,38 @@
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.5;
+    }
+
+    // Code block stilleri
+    ::ng-deep pre {
+      background: rgba(0, 0, 0, 0.8) !important;
+      border-radius: 8px !important;
+      padding: 12px !important;
+      margin: 8px 0 !important;
+      overflow-x: auto !important;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      color: #e5e7eb !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+      code {
+        background: transparent !important;
+        padding: 0 !important;
+        border: none !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        color: inherit !important;
+      }
+    }
+
+    ::ng-deep code {
+      background: rgba(0, 0, 0, 0.6) !important;
+      color: #e5e7eb !important;
+      padding: 2px 6px !important;
+      border-radius: 4px !important;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+      font-size: 13px !important;
     }
   }
 
@@ -388,20 +420,28 @@
     }
 
     .messages-content {
-      padding: 8px 16px; // Üst padding'i azalttım
-      gap: 12px;
+      padding: 6px 8px; // Mobile için minimum padding (maksimum alan)
+      gap: 10px; // Daha kompakt mesaj aralığı
       margin-bottom: 50px; // 30px'den 50px'e çıkardım (uzun mesajlar için)
     }
 
     .message-wrapper {
       &.user-message-wrapper,
       &.ai-message-wrapper {
-        max-width: 85%;
+        max-width: 95%;
       }
 
       .message-card {
         ::ng-deep .p-card .p-card-body {
-          padding: 12px 16px;
+          padding: 10px 12px;
+          
+          .message-text {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            max-width: 100%;
+          }
         }
       }
     }

@@ -79,6 +79,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   private isViewInitialized = false;
   showScrollToBottomButton = false;
   private previousMessageCount = 0;
+  private scrollTimeout: any = null;
+  private lastScrollTime = 0;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -95,14 +97,17 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    const isMobile = window.innerWidth <= 768;
+    
     if (changes['currentSessionId']) {
       this.shouldScrollToBottom = true;
-      // Session değiştiğinde biraz daha bekle
+      // Session değiştiğinde biraz daha bekle (mobile'da daha uzun)
+      const delay = isMobile ? 300 : 150;
       setTimeout(() => {
         if (this.isViewInitialized) {
           this.scrollToBottom();
         }
-      }, 150);
+      }, delay);
       
       // Session değiştiğinde modeli sıfırla
       if (this.currentSessionId) {
@@ -116,23 +121,25 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       
       const currentCount = this.messages.length;
       if (currentCount > this.previousMessageCount && this.shouldScrollToBottom) {
-        // Yeni mesaj geldiğinde scroll için biraz bekle
+        // Yeni mesaj geldiğinde scroll için bekle (mobile'da sadece gerçekten gerekirse)
+        const delay = isMobile ? 200 : 100;
         setTimeout(() => {
-          if (this.isViewInitialized) {
+          if (this.isViewInitialized && this.shouldScrollToBottom) {
             this.scrollToBottom();
           }
-        }, 100);
+        }, delay);
       }
       this.previousMessageCount = currentCount;
     }
 
     if (changes['isLoading'] && !this.isLoading && this.shouldScrollToBottom) {
-      // Loading bittiğinde daha uzun bekle
+      // Loading bittiğinde bekle (mobile'da daha uzun)
+      const delay = isMobile ? 400 : 250;
       setTimeout(() => {
-        if (this.isViewInitialized) {
+        if (this.isViewInitialized && this.shouldScrollToBottom) {
           this.scrollToBottom();
         }
-      }, 250);
+      }, delay);
     }
   }
 
@@ -217,23 +224,49 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
 
   onScroll(event: any) {
     try {
-      const element = event.target;
-      const scrollTop = element.scrollTop;
-      const scrollHeight = element.scrollHeight;
-      const clientHeight = element.clientHeight;
+      const now = Date.now();
+      // Mobile'da scroll event'lerini debounce et
+      const isMobile = window.innerWidth <= 768;
+      const debounceTime = isMobile ? 100 : 50;
       
-      // Scroll pozisyonunu kontrol et - daha basit ve güvenilir mantık
-      const scrollBottom = scrollTop + clientHeight;
-      const tolerance = 5; // 5px tolerance
-      
-      // Kullanıcı en altta mı?
-      const atBottom = scrollBottom >= scrollHeight - tolerance;
-      
-      // Scroll davranışını ayarla
-      this.shouldScrollToBottom = atBottom;
-      
-      // Scroll butonunu göster/gizle - kullanıcı yukarıda ise göster
-      this.showScrollToBottomButton = !atBottom && scrollHeight > clientHeight + 100;
+      if (now - this.lastScrollTime < debounceTime) {
+        return;
+      }
+      this.lastScrollTime = now;
+
+      // Scroll timeout'u temizle
+      if (this.scrollTimeout) {
+        clearTimeout(this.scrollTimeout);
+      }
+
+      // Scroll logic'ini timeout ile çalıştır (mobile'da gecikme ekle)
+      this.scrollTimeout = setTimeout(() => {
+        const element = event.target;
+        const scrollTop = element.scrollTop;
+        const scrollHeight = element.scrollHeight;
+        const clientHeight = element.clientHeight;
+        
+        // Mobile'da daha yüksek tolerance
+        const tolerance = isMobile ? 20 : 5;
+        
+        // Scroll pozisyonunu kontrol et
+        const scrollBottom = scrollTop + clientHeight;
+        
+        // Kullanıcı en altta mı?
+        const atBottom = scrollBottom >= scrollHeight - tolerance;
+        
+        // Scroll davranışını ayarla - mobile'da daha konservatif
+        if (isMobile) {
+          // Mobile'da sadece gerçekten en alttaysa auto-scroll yap
+          this.shouldScrollToBottom = atBottom && scrollBottom >= scrollHeight - 10;
+        } else {
+          this.shouldScrollToBottom = atBottom;
+        }
+        
+        // Scroll butonunu göster/gizle
+        this.showScrollToBottomButton = !atBottom && scrollHeight > clientHeight + 100;
+        
+      }, isMobile ? 50 : 0);
       
     } catch (err) {
       console.error('Scroll event hatası:', err);
@@ -542,6 +575,12 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   ngOnDestroy() {
     // Image URL cache'ini temizle
     this.imageUrlCache.clear();
+    
+    // Scroll timeout'u temizle
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+      this.scrollTimeout = null;
+    }
   }
 
   sortMessagesByDate() {
