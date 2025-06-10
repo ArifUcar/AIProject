@@ -17,11 +17,12 @@
   }
 
   .messages-scroll-area {
-    height: calc(100vh - 180px);
+    height: calc(100vh - 140px);
     width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
+    position: relative;
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -382,7 +383,7 @@
     }
 
     .messages-scroll-area {
-      height: calc(100vh - 160px);
+      height: calc(100vh - 120px); // Mobile için daha da fazla alan
     }
 
     .messages-content {
@@ -437,142 +438,6 @@
       .preview-item .preview-image-wrapper {
         width: 60px;
         height: 60px;
-      }
-    }
-  }
-}
-
-// Model Selection Top Bar - Compact Styles
-.model-selection-top-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
-  border-bottom: 2px solid rgba(59, 130, 246, 0.2);
-  backdrop-filter: blur(15px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-  .model-selection-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(30, 41, 59, 0.7);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    .model-label {
-      color: #e2e8f0;
-      font-weight: 500;
-      font-size: 14px;
-      white-space: nowrap;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    .model-dropdown-compact {
-      width: 180px;
-
-      ::ng-deep .p-dropdown {
-        background: rgba(30, 41, 59, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 6px;
-        color: #e2e8f0;
-        height: 32px;
-
-        .p-dropdown-label {
-          color: #e2e8f0;
-          padding: 0.4rem 0.6rem;
-          font-size: 13px;
-          line-height: 1.2;
-        }
-
-        .p-dropdown-trigger {
-          color: #94a3b8;
-          width: 24px;
-        }
-
-        &:not(.p-disabled):hover {
-          border-color: rgba(59, 130, 246, 0.4);
-          background: rgba(30, 41, 59, 0.9);
-        }
-
-        &:not(.p-disabled).p-focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
-        }
-
-        &.p-disabled {
-          opacity: 0.6;
-        }
-      }
-
-      ::ng-deep .p-dropdown-panel {
-        background: #1e293b;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-        min-width: 180px;
-
-        .p-dropdown-items {
-          .p-dropdown-item {
-            color: #e2e8f0;
-            padding: 0.5rem 0.75rem;
-            font-size: 13px;
-            
-            &:hover {
-              background: rgba(59, 130, 246, 0.1);
-              color: #3b82f6;
-            }
-
-            &.p-highlight {
-              background: rgba(59, 130, 246, 0.15);
-              color: #60a5fa;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .model-selection-top-bar {
-    padding: 0.4rem 0.75rem;
-    
-    .model-selection-container {
-      gap: 0.5rem;
-      padding: 0.4rem 0.75rem;
-
-      .model-label {
-        font-size: 12px;
-      }
-
-      .model-dropdown-compact {
-        width: 140px;
-
-        ::ng-deep .p-dropdown {
-          height: 28px;
-
-          .p-dropdown-label {
-            padding: 0.3rem 0.5rem;
-            font-size: 12px;
-          }
-
-          .p-dropdown-trigger {
-            width: 20px;
-          }
-        }
-
-        ::ng-deep .p-dropdown-panel {
-          min-width: 140px;
-
-          .p-dropdown-items .p-dropdown-item {
-            padding: 0.4rem 0.6rem;
-            font-size: 12px;
-          }
-        }
       }
     }
   }

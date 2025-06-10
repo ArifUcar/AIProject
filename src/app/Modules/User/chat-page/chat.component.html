@@ -36,6 +36,30 @@
             <span>🤖 {{ messageStats.ai }}</span>
           </div>
         </div>
+        
+        <!-- Model Selection Dropdown -->
+        <div class="header-model-selection">
+          <div class="custom-dropdown" [class.open]="isDropdownOpen">
+            <div class="dropdown-selected" (click)="toggleDropdown()">
+              <span class="selected-text">
+                {{ selectedModel?.label || 'Model seçin...' }}
+              </span>
+              <i class="dropdown-arrow" [class.rotated]="isDropdownOpen">▼</i>
+            </div>
+            <div class="dropdown-options" *ngIf="isDropdownOpen">
+              <div class="dropdown-option" 
+                   *ngFor="let model of models" 
+                   [class.selected]="selectedModel?.value === model.value"
+                   (click)="selectModel(model)">
+                {{ model.label }}
+              </div>
+              <div class="dropdown-loading" *ngIf="isLoadingModels">
+                <div class="loading-spinner"></div>
+                <span>Yükleniyor...</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div *ngIf="isLoadingMessages" class="loading-overlay">

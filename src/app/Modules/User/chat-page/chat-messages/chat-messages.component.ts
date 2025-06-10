@@ -97,7 +97,12 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   ngOnChanges(changes: SimpleChanges) {
     if (changes['currentSessionId']) {
       this.shouldScrollToBottom = true;
-      setTimeout(() => this.scrollToBottom(), 100);
+      // Session değiştiğinde biraz daha bekle
+      setTimeout(() => {
+        if (this.isViewInitialized) {
+          this.scrollToBottom();
+        }
+      }, 150);
       
       // Session değiştiğinde modeli sıfırla
       if (this.currentSessionId) {
@@ -111,13 +116,23 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       
       const currentCount = this.messages.length;
       if (currentCount > this.previousMessageCount && this.shouldScrollToBottom) {
-        setTimeout(() => this.scrollToBottom(), 100);
+        // Yeni mesaj geldiğinde scroll için biraz bekle
+        setTimeout(() => {
+          if (this.isViewInitialized) {
+            this.scrollToBottom();
+          }
+        }, 100);
       }
       this.previousMessageCount = currentCount;
     }
 
     if (changes['isLoading'] && !this.isLoading && this.shouldScrollToBottom) {
-      setTimeout(() => this.scrollToBottom(), 200);
+      // Loading bittiğinde daha uzun bekle
+      setTimeout(() => {
+        if (this.isViewInitialized) {
+          this.scrollToBottom();
+        }
+      }, 250);
     }
   }
 
@@ -148,28 +163,55 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   scrollToBottom(): void {
-    if (!this.messagesList?.nativeElement) return;
+    if (!this.messagesList?.nativeElement || !this.isViewInitialized) return;
     
     try {
       const element = this.messagesList.nativeElement;
+      
+      // Scroll işlemini gerçekleştir
       element.scrollTop = element.scrollHeight;
+      
+      // Scroll başarılı olup olmadığını kontrol et
+      setTimeout(() => {
+        if (element.scrollTop < element.scrollHeight - element.clientHeight - 10) {
+          // Eğer scroll tam olarak en alta gitmemişse tekrar dene
+          element.scrollTop = element.scrollHeight;
+        }
+      }, 50);
+      
     } catch (err) {
       console.error('Scroll hatası:', err);
     }
   }
 
   scrollToBottomSmooth() {
-    if (!this.messagesList?.nativeElement) return;
+    if (!this.messagesList?.nativeElement || !this.isViewInitialized) return;
     
     try {
       const element = this.messagesList.nativeElement;
+      
+      // Smooth scroll ile en alta git
       element.scrollTo({
         top: element.scrollHeight,
         behavior: 'smooth'
       });
+      
+      // Scroll butonunu gizle
       this.showScrollToBottomButton = false;
+      
+      // Scroll işlemi tamamlandıktan sonra pozisyonu kontrol et
+      setTimeout(() => {
+        if (element.scrollTop < element.scrollHeight - element.clientHeight - 10) {
+          // Smooth scroll başarısız olmuşsa normal scroll yap
+          element.scrollTop = element.scrollHeight;
+        }
+        this.shouldScrollToBottom = true;
+      }, 500); // Smooth scroll için daha uzun süre bekle
+      
     } catch (err) {
       console.error('Smooth scroll hatası:', err);
+      // Hata durumunda normal scroll yap
+      this.scrollToBottom();
     }
   }
 
@@ -180,11 +222,24 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       const scrollHeight = element.scrollHeight;
       const clientHeight = element.clientHeight;
       
-      const atBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+      // Scroll pozisyonunu kontrol et - daha basit ve güvenilir mantık
+      const scrollBottom = scrollTop + clientHeight;
+      const tolerance = 5; // 5px tolerance
+      
+      // Kullanıcı en altta mı?
+      const atBottom = scrollBottom >= scrollHeight - tolerance;
+      
+      // Scroll davranışını ayarla
       this.shouldScrollToBottom = atBottom;
-      this.showScrollToBottomButton = scrollHeight - scrollTop - clientHeight > 200;
+      
+      // Scroll butonunu göster/gizle - kullanıcı yukarıda ise göster
+      this.showScrollToBottomButton = !atBottom && scrollHeight > clientHeight + 100;
+      
     } catch (err) {
       console.error('Scroll event hatası:', err);
+      // Hata durumunda varsayılan değerleri ayarla
+      this.shouldScrollToBottom = true;
+      this.showScrollToBottomButton = false;
     }
   }
 

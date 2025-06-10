@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ChatSessionComponent } from './chat-session/chat-session.component';
 import { ChatMessagesComponent } from './chat-messages/chat-messages.component';
 import { Subject, takeUntil, finalize } from 'rxjs';
@@ -7,6 +8,7 @@ import { Subject, takeUntil, finalize } from 'rxjs';
 // Services
 import { ChatSessionService, ChatSessionListItem, CreateSessionRequest } from '../../../Core/Services/ChatSessionService/ChatSession.service';
 import { ChatMessageService } from '../../../Core/Services/ChatMessageService/ChatMessageService';
+import { PlanUserService } from '../../../Core/Services/PlanUserService/PlanUser.service';
 
 // Models
 import { SendMessageRequest } from '../../../Model/Entity/Message/SentMessage.Request';
@@ -34,7 +36,7 @@ interface Message {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ChatSessionComponent, ChatMessagesComponent],
+  imports: [CommonModule, FormsModule, ChatSessionComponent, ChatMessagesComponent],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss'
 })
@@ -60,21 +62,74 @@ export class ChatComponent implements OnInit, OnDestroy {
   totalMessages: number = 0;
   hasMoreMessages: boolean = false;
 
+  // Model selection
+  models: any[] = [];
+  selectedModel: any = null;
+  isLoadingModels: boolean = false;
+  isDropdownOpen: boolean = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private chatSessionService: ChatSessionService,
     private chatMessageService: ChatMessageService,
+    private planUserService: PlanUserService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
   ngOnInit() {
     this.loadSessions();
+    this.loadModels();
+    this.setupDocumentClickListener();
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this.removeDocumentClickListener();
+  }
+
+  // Document click listener for dropdown
+  private documentClickListener: (event: Event) => void = (event: Event) => {
+    const target = event.target as HTMLElement;
+    const dropdown = target.closest('.custom-dropdown');
+    if (!dropdown && this.isDropdownOpen) {
+      this.isDropdownOpen = false;
+      this.cdr.detectChanges();
+    }
+  };
+
+  private setupDocumentClickListener() {
+    if (isPlatformBrowser(this.platformId)) {
+      document.addEventListener('click', this.documentClickListener);
+    }
+  }
+
+  private removeDocumentClickListener() {
+    if (isPlatformBrowser(this.platformId)) {
+      document.removeEventListener('click', this.documentClickListener);
+    }
+  }
+
+  // Custom dropdown methods
+  toggleDropdown() {
+    if (!this.isLoadingModels) {
+      this.isDropdownOpen = !this.isDropdownOpen;
+    }
+  }
+
+  selectModel(model: any) {
+    this.selectedModel = model;
+    this.isDropdownOpen = false;
+    console.log('Model değişti:', this.selectedModel);
+    
+    // Eğer aktif bir session varsa, modeli güncelle
+    if (this.currentSessionId && this.selectedModel) {
+      const modelValue = this.selectedModel.value || this.selectedModel;
+      console.log('Session modeli güncelleniyor:', modelValue);
+      this.updateSessionModel(this.currentSessionId, modelValue);
+    }
   }
 
   private loadSessions() {
@@ -367,5 +422,89 @@ export class ChatComponent implements OnInit, OnDestroy {
       user: userMessages,
       ai: aiMessages
     };
+  }
+
+  // Model selection methods
+  loadModels() {
+    this.isLoadingModels = true;
+    console.log('Modeller yükleniyor...');
+    
+    this.planUserService.getPlanModels().subscribe({
+      next: (response) => {
+        console.log('API yanıtı:', response);
+        
+        try {
+          if (response && response.models) {
+            // Modelleri virgülle ayrıştır ve dropdown için formatla
+            const modelList = response.models.split(', ').map(model => ({
+              label: model.trim(),
+              value: model.trim()
+            }));
+            
+            console.log('Formatlanmış modeller:', modelList);
+            this.models = modelList;
+            
+            // İlk modeli seç
+            if (this.models.length > 0) {
+              this.selectedModel = this.models[0];
+              console.log('Varsayılan model seçildi:', this.selectedModel);
+            }
+          } else {
+            console.warn('API yanıtında models alanı bulunamadı');
+            // Fallback: Varsayılan modeller
+            this.models = [
+              { label: 'GPT-4', value: 'gpt-4' },
+              { label: 'GPT-3.5', value: 'gpt-3.5-turbo' }
+            ];
+            this.selectedModel = this.models[0];
+          }
+        } catch (error) {
+          console.error('Model parsing hatası:', error);
+          // Fallback: Varsayılan modeller
+          this.models = [
+            { label: 'GPT-4', value: 'gpt-4' },
+            { label: 'GPT-3.5', value: 'gpt-3.5-turbo' }
+          ];
+          this.selectedModel = this.models[0];
+        }
+        
+        this.isLoadingModels = false;
+        this.cdr.detectChanges(); // Force change detection
+        console.log('Model yüklendi, loading durumu:', this.isLoadingModels);
+      },
+      error: (error) => {
+        console.error('Model yükleme hatası:', error);
+        
+        // Hata durumunda varsayılan modeller
+        this.models = [
+          { label: 'GPT-4', value: 'gpt-4' },
+          { label: 'GPT-3.5', value: 'gpt-3.5-turbo' },
+          { label: 'Claude', value: 'claude-3-sonnet' }
+        ];
+        this.selectedModel = this.models[0];
+        
+        this.isLoadingModels = false;
+        this.cdr.detectChanges(); // Force change detection
+        console.log('Hata sonrası loading durumu:', this.isLoadingModels);
+      }
+    });
+  }
+
+  updateSessionModel(sessionId: string, modelUsed: string) {
+    const request = {
+      sessionId: sessionId,
+      modelUsed: modelUsed
+    };
+
+    this.chatSessionService.updateSessionModel(request).subscribe({
+      next: (response) => {
+        console.log('Session modeli başarıyla güncellendi:', response);
+        // Başarılı güncelleme mesajı gösterilebilir
+      },
+      error: (error) => {
+        console.error('Session modeli güncelleme hatası:', error);
+        // Hata durumunda kullanıcıya bilgi verilebilir
+      }
+    });
   }
 } 

@@ -1,23 +1,5 @@
 <div class="chat-messages-container">
   <div class="messages-wrapper">
-    <!-- Model Selection - Compact Top Bar -->
-    <div class="model-selection-top-bar" *ngIf="currentSessionId">
-      <div class="model-selection-container">
-        <span class="model-label">Model seçin:</span>
-        <p-dropdown 
-          [options]="models" 
-          [(ngModel)]="selectedModel"
-          optionLabel="label"
-          placeholder="Seçin..."
-          [loading]="isLoadingModels"
-          [disabled]="isLoadingModels"
-          (onChange)="onModelChange($event)"
-          [showClear]="false"
-          class="model-dropdown-compact">
-        </p-dropdown>
-      </div>
-    </div>
-
     <!-- Messages Area -->
     <div *ngIf="currentSessionId" #messagesList class="messages-scroll-area" (scroll)="onScroll($event)">
       <div class="messages-content">

@@ -131,6 +131,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: relative;
+        z-index: 5000;
 
         .header-info {
           display: flex;
@@ -155,6 +157,144 @@
               padding: 0.2rem 0.6rem;
               border-radius: 8px;
               border: 1px solid rgba(59, 130, 246, 0.2);
+            }
+          }
+        }
+
+        .header-model-selection {
+          display: flex;
+          align-items: center;
+          z-index: 10000;
+
+          .custom-dropdown {
+            position: relative;
+            width: 180px;
+            z-index: 10000;
+            
+            .dropdown-selected {
+              background: rgba(30, 41, 59, 0.9);
+              border: 1px solid rgba(255, 255, 255, 0.15);
+              border-radius: 8px;
+              padding: 0.5rem 0.75rem;
+              cursor: pointer;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              height: 40px;
+              transition: all 0.3s ease;
+              
+              &:hover {
+                border-color: rgba(59, 130, 246, 0.4);
+                background: rgba(30, 41, 59, 1);
+              }
+              
+              .selected-text {
+                color: #e2e8f0;
+                font-size: 14px;
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+              
+              .dropdown-arrow {
+                color: #94a3b8;
+                font-size: 12px;
+                transition: transform 0.3s ease;
+                
+                &.rotated {
+                  transform: rotate(180deg);
+                }
+              }
+            }
+            
+            .dropdown-options {
+              position: absolute;
+              top: 100%;
+              left: 0;
+              right: 0;
+              background: #1e293b;
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              border-radius: 8px;
+              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+              z-index: 99999;
+              max-height: 200px;
+              overflow-y: auto;
+              margin-top: 4px;
+              
+              .dropdown-option {
+                padding: 0.6rem 0.8rem;
+                color: #e2e8f0;
+                font-size: 14px;
+                cursor: pointer;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                transition: all 0.2s ease;
+                
+                &:last-child {
+                  border-bottom: none;
+                }
+                
+                &:hover {
+                  background: rgba(59, 130, 246, 0.1);
+                  color: #3b82f6;
+                }
+                
+                &.selected {
+                  background: rgba(59, 130, 246, 0.15);
+                  color: #60a5fa;
+                  
+                  &::after {
+                    content: '✓';
+                    float: right;
+                    color: #60a5fa;
+                  }
+                }
+              }
+              
+              .dropdown-loading {
+                padding: 0.8rem;
+                text-align: center;
+                color: #94a3b8;
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                
+                .loading-spinner {
+                  width: 16px;
+                  height: 16px;
+                  border: 2px solid rgba(59, 130, 246, 0.3);
+                  border-top: 2px solid #3b82f6;
+                  border-radius: 50%;
+                  animation: spin 1s linear infinite;
+                }
+              }
+              
+              &::-webkit-scrollbar {
+                width: 6px;
+              }
+              
+              &::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 3px;
+              }
+              
+              &::-webkit-scrollbar-thumb {
+                background: rgba(59, 130, 246, 0.6);
+                border-radius: 3px;
+                
+                &:hover {
+                  background: rgba(59, 130, 246, 0.8);
+                }
+              }
+            }
+            
+            &.open {
+              .dropdown-selected {
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+              }
             }
           }
         }
@@ -239,6 +379,12 @@
   }
 }
 
+// Keyframe animations
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 // Responsive Design
 @media (max-width: 1024px) {
   .chat-container .chat-layout .sessions-panel {
@@ -269,6 +415,60 @@
     .messages-panel {
       flex: 1;
       height: calc(100vh - 220px);
+
+      .message-header {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+
+        .header-info {
+          h3 {
+            font-size: 1rem;
+          }
+
+          .message-stats {
+            gap: 0.5rem;
+            
+            span {
+              font-size: 0.75rem;
+              padding: 0.15rem 0.5rem;
+            }
+          }
+        }
+
+        .header-model-selection {
+          .custom-dropdown {
+            width: 100%;
+            z-index: 10000;
+
+            .dropdown-selected {
+              height: 36px;
+              position: relative;
+              z-index: 1001;
+
+              .selected-text {
+                padding: 0.4rem 0.6rem;
+                font-size: 13px;
+              }
+
+              .dropdown-arrow {
+                width: 24px;
+              }
+            }
+
+            .dropdown-options {
+              min-width: calc(100vw - 2rem);
+              z-index: 99999;
+
+              .dropdown-option {
+                padding: 0.5rem 0.7rem;
+                font-size: 13px;
+              }
+            }
+          }
+        }
+      }
     }
   }
 } 
