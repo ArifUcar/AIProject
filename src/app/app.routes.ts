@@ -4,6 +4,7 @@ import { RegisterPageComponent } from './Modules/Auth/register-page/register-pag
 
 import { AuthGuard } from './Core/Guards/auth.guard';
 import { ChatComponent } from './Modules/User/chat-page/chat.component';
+import { ChoosePlanComponent } from './Modules/User/choose-plan/choose-plan.component';
 
 export const routes: Routes = [
     {
@@ -22,6 +23,11 @@ export const routes: Routes = [
     {
         path: 'chat',
         component: ChatComponent,
+        canActivate: [AuthGuard]
+    },
+    {
+        path: 'choose-plan',
+        component: ChoosePlanComponent,
         canActivate: [AuthGuard]
     },
     {

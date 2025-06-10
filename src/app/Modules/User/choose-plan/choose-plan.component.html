@@ -1,0 +1,176 @@
+<div class="choose-plan-primeng">
+  <!-- Header -->
+  <div class="header-section">
+    <h1 class="main-title">
+      <i class="pi pi-star-fill mr-3"></i>
+      Planınızı Seçin
+    </h1>
+    <p class="subtitle">
+      <i class="pi pi-sparkles mr-2"></i>
+      İhtiyaçlarınıza en uygun AI planını seçin ve bugün başlayın
+    </p>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading-section">
+    <i class="pi pi-spin pi-spinner loading-icon"></i>
+    <h3>Planlar Yükleniyor...</h3>
+    <div class="skeleton-cards">
+      <p-skeleton 
+        *ngFor="let item of [1,2,3]" 
+        height="350px" 
+        width="320px"
+        borderRadius="20px">
+      </p-skeleton>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="hasError" class="error-section">
+    <p-message 
+      severity="error" 
+      [text]="errorMessage"
+      [closable]="false"
+      styleClass="error-message">
+    </p-message>
+    <p-button 
+      label="Tekrar Dene" 
+      icon="pi pi-refresh" 
+      severity="danger"
+      [raised]="true"
+      (onClick)="loadPlans()">
+    </p-button>
+  </div>
+
+  <!-- Plans -->
+  <div *ngIf="hasPlans && !isLoading" class="plans-section">
+    <div class="plans-grid">
+      <p-card 
+        *ngFor="let plan of plans" 
+        styleClass="plan-card"
+        [ngClass]="{
+          'plan-popular': plan.isPopular,
+          'plan-selected': selectedPlanId === plan.id
+        }"
+        (click)="onSelectPlan(plan.id)"
+        pRipple>
+        
+        <!-- Card Header -->
+        <ng-template pTemplate="header">
+          <div class="card-header-content">
+            <!-- Badges -->
+            <div class="badges-row">
+              <p-tag 
+                *ngIf="plan.isPopular" 
+                value="EN POPÜLER" 
+                severity="warning"
+                icon="pi pi-star-fill"
+                styleClass="popular-badge">
+              </p-tag>
+              <p-tag 
+                [value]="getDurationText(plan.duration)"
+                [severity]="getPlanSeverity(plan)"
+                styleClass="duration-badge">
+              </p-tag>
+            </div>
+            
+            <!-- Plan Info -->
+            <h3 class="plan-title">{{ plan.name }}</h3>
+            <p class="plan-description">{{ plan.description }}</p>
+            
+            <!-- Price -->
+            <div class="price-display">
+              <span *ngIf="plan.originalPrice" class="original-price">
+                ₺{{ plan.originalPrice | number:'1.2-2':'tr-TR' }}
+              </span>
+              <div class="current-price-row">
+                <span class="current-price">{{ getFormattedPrice(plan.price) }}</span>
+                <p-tag 
+                  *ngIf="plan.discountRate" 
+                  [value]="'%' + plan.discountRate"
+                  severity="danger"
+                  styleClass="discount-mini">
+                </p-tag>
+              </div>
+              <span *ngIf="plan.duration !== 3" class="price-period">
+                / {{ getDurationText(plan.duration).toLowerCase() }}
+              </span>
+            </div>
+          </div>
+        </ng-template>
+
+        <!-- Card Content -->
+        <div class="card-main-content">
+          <!-- AI Models Grid -->
+          <div class="models-section">
+            <div class="models-title">
+              <i class="pi pi-cpu"></i>
+              <span>{{ plan.models.length }} AI Model</span>
+            </div>
+            <div class="models-grid">
+              <div 
+                *ngFor="let model of plan.models; let i = index" 
+                class="model-item"
+                [ngStyle]="{'--model-color': plan.colorCode}">
+                {{ getModelDisplayName(model) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Info -->
+          <div class="quick-info">
+            <div class="info-row">
+              <div class="info-item">
+                <i class="pi pi-code"></i>
+                <span class="info-label">Token</span>
+                <span class="info-value">{{ plan.limits.tokens }}</span>
+              </div>
+              <div class="info-item">
+                <i class="pi pi-image"></i>
+                <span class="info-label">Görüntü</span>
+                <span class="info-value">{{ plan.limits.images }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <i class="pi pi-volume-up"></i>
+                <span class="info-label">Ses</span>
+                <span class="info-value">{{ plan.limits.audio }}</span>
+              </div>
+              <div class="info-item">
+                <i class="pi pi-check-circle"></i>
+                <span class="info-label">Destek</span>
+                <span class="info-value">{{ plan.features[1] || 'Standart' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <ng-template pTemplate="footer">
+          <p-button 
+            [label]="selectedPlanId === plan.id ? '✓ Seçildi' : 'Bu Planı Seç'"
+            [severity]="selectedPlanId === plan.id ? 'success' : 'primary'"
+            [raised]="true"
+            [outlined]="selectedPlanId !== plan.id"
+            styleClass="select-button"
+            [icon]="selectedPlanId === plan.id ? 'pi pi-check' : 'pi pi-shopping-cart'"
+            (onClick)="onSelectPlan(plan.id)"
+            pRipple>
+          </p-button>
+        </ng-template>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!hasPlans && !isLoading && !hasError" class="empty-section">
+    <p-message 
+      severity="info" 
+      text="Şu anda aktif plan bulunmamaktadır."
+      [closable]="false">
+    </p-message>
+  </div>
+
+
+
