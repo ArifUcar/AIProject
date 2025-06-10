@@ -210,7 +210,6 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.currentSessionId = sessionId;
     this.currentPage = 1;
     this.loadMessages(sessionId);
-    this.scrollToBottom();
     
     // Mobile'da messages sayfasına geç
     if (this.isMobile) {
@@ -288,7 +287,19 @@ export class ChatComponent implements OnInit, OnDestroy {
         )
         .subscribe({
           next: (response: ChatMessageDto) => {
-            this.refreshMessages();
+            // AI yanıtını direkt olarak ekle
+            if (response) {
+              const aiMessage: Message = {
+                id: parseInt(response.id) || Date.now(),
+                content: response.content || 'Mesaj içeriği bulunamadı',
+                sender: 'ai',
+                timestamp: new Date(response.createdDate || response.sentAt),
+                hasImage: false,
+                messageStatus: response.messageStatus,
+                isActive: response.isActive
+              };
+              this.messages = [...this.messages, aiMessage];
+            }
           },
           error: (error) => {
             console.error('Mesaj gönderilirken hata:', error);
@@ -338,17 +349,31 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.chatMessageService.getBySessionIdMessages(sessionId, params)
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isLoadingMessages = false)
+        finalize(() => {
+          this.isLoadingMessages = false;
+          // İlk yüklemede ve loadMore false ise en alttaki mesaja scroll yap
+          if (!loadMore && this.messages.length > 0) {
+            setTimeout(() => {
+              if (this.chatMessagesComponent) {
+                const element = this.chatMessagesComponent['messagesList']?.nativeElement;
+                if (element) {
+                  element.scrollTop = element.scrollHeight;
+                }
+              }
+            }, 100);
+          }
+        })
       )
       .subscribe({
         next: (response) => {
           const newMessages = this.mapMessagesToLocal(response.items || []);
           
           if (loadMore) {
+            // Daha eski mesajları yüklerken, yeni mesajları başa ekle
             this.messages = [...newMessages, ...this.messages];
           } else {
+            // İlk yüklemede tüm mesajları göster
             this.messages = newMessages;
-            this.scrollToBottom();
           }
 
           this.totalMessages = response.totalCount || 0;
@@ -373,8 +398,9 @@ export class ChatComponent implements OnInit, OnDestroy {
       .sort((a, b) => {
         const dateA = new Date(a.createdDate || a.sentAt).getTime();
         const dateB = new Date(b.createdDate || b.sentAt).getTime();
-        return dateA - dateB;
+        return dateB - dateA;
       })
+      .reverse()
       .map((msg, index) => {
         let processedImageUrls: string[] = [];
         

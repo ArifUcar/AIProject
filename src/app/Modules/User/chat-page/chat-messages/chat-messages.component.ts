@@ -81,6 +81,17 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   private previousMessageCount = 0;
   private scrollTimeout: any = null;
   private lastScrollTime = 0;
+  
+  // Typing animation
+  typingText: string = '';
+  private typingMessages: string[] = [
+    'AI düşünüyor',
+    'AI yanıt hazırlıyor',
+    'AI analiz ediyor',
+    'AI cevap yazıyor'
+  ];
+  private typingInterval: any = null;
+  private typingMessageIndex: number = 0;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -100,19 +111,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
     const isMobile = window.innerWidth <= 768;
     
     if (changes['currentSessionId']) {
-      this.shouldScrollToBottom = true;
-      // Session değiştiğinde biraz daha bekle (mobile'da daha uzun)
-      const delay = isMobile ? 300 : 150;
-      setTimeout(() => {
-        if (this.isViewInitialized) {
-          this.scrollToBottom();
-        }
-      }, delay);
-      
-      // Session değiştiğinde modeli sıfırla
-      if (this.currentSessionId) {
-        this.loadSessionModel();
-      }
+      // Session değiştiğinde scroll yapma
+      this.shouldScrollToBottom = false;
     }
 
     if (changes['messages'] && this.messages) {
@@ -120,26 +120,36 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       this.sortMessagesByDate();
       
       const currentCount = this.messages.length;
-      if (currentCount > this.previousMessageCount && this.shouldScrollToBottom) {
-        // Yeni mesaj geldiğinde scroll için bekle (mobile'da sadece gerçekten gerekirse)
-        const delay = isMobile ? 200 : 100;
-        setTimeout(() => {
-          if (this.isViewInitialized && this.shouldScrollToBottom) {
-            this.scrollToBottom();
-          }
-        }, delay);
+      
+      // Sadece kullanıcı mesajı gönderdiğinde ve shouldScrollToBottom true ise scroll yap
+      if (currentCount > this.previousMessageCount) {
+        const lastMessage = this.messages[this.messages.length - 1];
+        
+        // Yeni mesaj user mesajı ise ve shouldScrollToBottom true ise scroll yap
+        if (lastMessage && lastMessage.sender === 'user' && this.shouldScrollToBottom) {
+          const delay = isMobile ? 200 : 100;
+          setTimeout(() => {
+            if (this.isViewInitialized && this.shouldScrollToBottom) {
+              this.scrollToBottom();
+            }
+          }, delay);
+        }
+        // AI mesajı geldiğinde scroll yapma
+        else if (lastMessage && lastMessage.sender === 'ai') {
+          this.shouldScrollToBottom = false;
+        }
       }
       this.previousMessageCount = currentCount;
     }
 
-    if (changes['isLoading'] && !this.isLoading && this.shouldScrollToBottom) {
-      // Loading bittiğinde bekle (mobile'da daha uzun)
-      const delay = isMobile ? 400 : 250;
-      setTimeout(() => {
-        if (this.isViewInitialized && this.shouldScrollToBottom) {
-          this.scrollToBottom();
-        }
-      }, delay);
+    if (changes['isLoading']) {
+      if (this.isLoading) {
+        // Loading başladığında typing animasyonunu başlat
+        this.startTypingAnimation();
+      } else {
+        // Loading bittiğinde typing animasyonunu durdur
+        this.stopTypingAnimation();
+      }
     }
   }
 
@@ -154,6 +164,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
           }
         }
         
+        // Mesaj gönderiliyor - AI animasyonunu başlat
+        console.log('Message sending, starting AI animation...');
+        
         this.sendMessage.emit(JSON.stringify({
           message: this.newMessage,
           images: base64Images
@@ -164,7 +177,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
         this.newMessage = '';
         this.selectedFiles = [];
         this.shouldScrollToBottom = true;
-        setTimeout(() => this.scrollToBottom(), 100);
+        
+        // Kullanıcı mesajı gönderdikten sonra sadece kullanıcı mesajını scroll et
+        // AI yanıtı için otomatik scroll yapma
       });
     }
   }
@@ -173,19 +188,31 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
     if (!this.messagesList?.nativeElement || !this.isViewInitialized) return;
     
     try {
-      const element = this.messagesList.nativeElement;
+      // Son mesajı kontrol et
+      const lastMessage = this.messages[this.messages.length - 1];
       
-      // Scroll işlemini gerçekleştir
-      element.scrollTop = element.scrollHeight;
-      
-      // Scroll başarılı olup olmadığını kontrol et
-      setTimeout(() => {
-        if (element.scrollTop < element.scrollHeight - element.clientHeight - 10) {
-          // Eğer scroll tam olarak en alta gitmemişse tekrar dene
-          element.scrollTop = element.scrollHeight;
+      // Sadece kullanıcı mesajı gönderildiğinde ve shouldScrollToBottom true ise scroll yap
+      if (lastMessage && lastMessage.sender === 'user' && this.shouldScrollToBottom) {
+        const element = this.messagesList.nativeElement;
+        const scrollHeight = element.scrollHeight;
+        const clientHeight = element.clientHeight;
+        
+        // Eğer zaten en alttaysak scroll yapma
+        if (element.scrollTop + clientHeight >= scrollHeight - 10) {
+          return;
         }
-      }, 50);
-      
+        
+        // Scroll işlemini gerçekleştir
+        element.scrollTop = scrollHeight;
+        
+        // Scroll başarılı olup olmadığını kontrol et
+        setTimeout(() => {
+          if (element.scrollTop < scrollHeight - clientHeight - 10) {
+            // Eğer scroll tam olarak en alta gitmemişse tekrar dene
+            element.scrollTop = scrollHeight;
+          }
+        }, 50);
+      }
     } catch (err) {
       console.error('Scroll hatası:', err);
     }
@@ -225,10 +252,10 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   onScroll(event: any) {
     try {
       const now = Date.now();
-      // Mobile'da scroll event'lerini debounce et
       const isMobile = window.innerWidth <= 768;
       const debounceTime = isMobile ? 100 : 50;
       
+      // Scroll event'lerini debounce et
       if (now - this.lastScrollTime < debounceTime) {
         return;
       }
@@ -239,7 +266,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
         clearTimeout(this.scrollTimeout);
       }
 
-      // Scroll logic'ini timeout ile çalıştır (mobile'da gecikme ekle)
+      // Scroll logic'ini timeout ile çalıştır
       this.scrollTimeout = setTimeout(() => {
         const element = event.target;
         const scrollTop = element.scrollTop;
@@ -248,29 +275,26 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
         
         // Mobile'da daha yüksek tolerance
         const tolerance = isMobile ? 20 : 5;
-        
-        // Scroll pozisyonunu kontrol et
         const scrollBottom = scrollTop + clientHeight;
-        
-        // Kullanıcı en altta mı?
         const atBottom = scrollBottom >= scrollHeight - tolerance;
         
-        // Scroll davranışını ayarla - mobile'da daha konservatif
+        // Scroll davranışını ayarla
         if (isMobile) {
           // Mobile'da sadece gerçekten en alttaysa auto-scroll yap
           this.shouldScrollToBottom = atBottom && scrollBottom >= scrollHeight - 10;
         } else {
+          // Desktop'ta daha hassas kontrol
           this.shouldScrollToBottom = atBottom;
         }
         
-        // Scroll butonunu göster/gizle
-        this.showScrollToBottomButton = !atBottom && scrollHeight > clientHeight + 100;
+        // Scroll butonunu göster/gizle (sadece yeterli scroll alanı varsa)
+        const hasScrollableContent = scrollHeight > clientHeight + 100;
+        this.showScrollToBottomButton = !atBottom && hasScrollableContent;
         
       }, isMobile ? 50 : 0);
       
     } catch (err) {
       console.error('Scroll event hatası:', err);
-      // Hata durumunda varsayılan değerleri ayarla
       this.shouldScrollToBottom = true;
       this.showScrollToBottomButton = false;
     }
@@ -420,14 +444,19 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   // Public methods
-  public forceScrollToBottom() {
-    this.shouldScrollToBottom = true;
-    setTimeout(() => this.scrollToBottom(), 100);
+  public forceScrollToBottom(): void {
+    // Sadece kullanıcı mesajı gönderildiğinde scroll yap
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage && lastMessage.sender === 'user') {
+      this.shouldScrollToBottom = true;
+      this.scrollToBottom();
+    } else {
+      this.shouldScrollToBottom = false;
+    }
   }
 
   public onSessionChanged() {
-    this.shouldScrollToBottom = true;
-    setTimeout(() => this.scrollToBottom(), 150);
+    this.shouldScrollToBottom = false;
   }
 
   // Model selection methods
@@ -581,6 +610,52 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       clearTimeout(this.scrollTimeout);
       this.scrollTimeout = null;
     }
+    
+    // Typing animasyonunu durdur
+    this.stopTypingAnimation();
+  }
+
+  // Typing animation methods
+  startTypingAnimation() {
+    console.log('Starting typing animation...');
+    this.stopTypingAnimation(); // Mevcut animasyonu durdur
+    this.typingMessageIndex = 0;
+    this.typingText = ''; // Reset typing text
+    this.typeCurrentMessage();
+  }
+
+  stopTypingAnimation() {
+    if (this.typingInterval) {
+      clearInterval(this.typingInterval);
+      this.typingInterval = null;
+    }
+    this.typingText = '';
+  }
+
+  private typeCurrentMessage() {
+    const currentMessage = this.typingMessages[this.typingMessageIndex];
+    let charIndex = 0;
+    this.typingText = '';
+    
+    console.log('Typing message:', currentMessage);
+    
+    this.typingInterval = setInterval(() => {
+      if (charIndex < currentMessage.length) {
+        this.typingText += currentMessage[charIndex];
+        charIndex++;
+        this.cdr.detectChanges();
+      } else {
+        // Mesaj tamamlandı, 1 saniye bekle ve sonraki mesaja geç
+        clearInterval(this.typingInterval);
+        
+        setTimeout(() => {
+          if (this.isLoading) { // Hala loading durumundaysa devam et
+            this.typingMessageIndex = (this.typingMessageIndex + 1) % this.typingMessages.length;
+            this.typeCurrentMessage();
+          }
+        }, 1000);
+      }
+    }, 100); // Her 100ms'de bir karakter ekle
   }
 
   sortMessagesByDate() {
