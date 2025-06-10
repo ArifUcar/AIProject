@@ -1,5 +1,23 @@
 <div class="chat-messages-container">
   <div class="messages-wrapper">
+    <!-- Model Selection - Compact Top Bar -->
+    <div class="model-selection-top-bar" *ngIf="currentSessionId">
+      <div class="model-selection-container">
+        <span class="model-label">Model seçin:</span>
+        <p-dropdown 
+          [options]="models" 
+          [(ngModel)]="selectedModel"
+          optionLabel="label"
+          placeholder="Seçin..."
+          [loading]="isLoadingModels"
+          [disabled]="isLoadingModels"
+          (onChange)="onModelChange($event)"
+          [showClear]="false"
+          class="model-dropdown-compact">
+        </p-dropdown>
+      </div>
+    </div>
+
     <!-- Messages Area -->
     <div *ngIf="currentSessionId" #messagesList class="messages-scroll-area" (scroll)="onScroll($event)">
       <div class="messages-content">
@@ -10,7 +28,7 @@
           
           <div class="message-avatar">
             <p-avatar [icon]="getUserAvatarIcon(message.sender)"
-                     [style]="{'background-color': getUserAvatarColor(message.sender), 'color': 'white'}"
+              [style]="{'background-color': getUserAvatarColor(message.sender), 'color': 'white'}"
                      size="normal" shape="circle">
             </p-avatar>
           </div>
@@ -27,20 +45,21 @@
               
               <ng-template #plainText>
                 <!-- Images -->
-                <div *ngFor="let imageUrl of message.imageUrl" class="message-image">
+                <div *ngFor="let imageUrl of message.imageUrl; trackBy: trackByImageUrl" class="message-image">
                   <p-image [src]="getImageUrl(imageUrl)"
                           [alt]="'Message image'"
                           [preview]="true"
+                          loading="lazy"
                           (onError)="onImageError($event, imageUrl)"
                           (onLoad)="onImageLoad(imageUrl)"
                           class="message-img">
-                  </p-image>
-                </div>
-                
+                    </p-image>
+                  </div>
+                  
                 <!-- Text content -->
                 <div class="text-content" *ngIf="message.content && !isImageUrl(message.content)">
-                  {{ message.content }}
-                </div>
+                    {{ message.content }}
+                  </div>
               </ng-template>
             </div>
             
@@ -59,28 +78,28 @@
             </p-avatar>
           </div>
           <p-card class="message-card typing-card">
-            <div class="typing-indicator">
+              <div class="typing-indicator">
               <i class="pi pi-android"></i>
               <span>AI yanıtlıyor</span>
-              <div class="typing-dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+                <div class="typing-dots">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
               </div>
-            </div>
-          </p-card>
+            </p-card>
         </div>
       </div>
     </div>
 
     <!-- Scroll to Bottom Button -->
     <p-button *ngIf="showScrollToBottomButton" 
-              class="scroll-to-bottom-btn"
-              icon="pi pi-angle-down"
-              [rounded]="true"
-              severity="primary"
-              pTooltip="Aşağı git"
-              (onClick)="scrollToBottomSmooth()">
+      class="scroll-to-bottom-btn"
+      icon="pi pi-angle-down"
+      [rounded]="true"
+      severity="primary"
+      pTooltip="Aşağı git"
+      (onClick)="scrollToBottomSmooth()">
     </p-button>
   </div>
 
@@ -99,7 +118,7 @@
             <img [src]="file.preview" [alt]="file.name" class="preview-image">
             <p-button icon="pi pi-times" [rounded]="true" size="small" severity="danger" 
                      (click)="onFileRemove(file.id || '')" class="remove-btn">
-            </p-button>
+              </p-button>
           </div>
           <div class="preview-info">
             <span class="file-name">{{ file.name }}</span>
@@ -113,12 +132,12 @@
       <!-- File Upload -->
       <div class="file-upload-section">
         <input type="file" #fileInput multiple accept="image/*" 
-               [disabled]="selectedFiles.length >= maxFiles"
+          [disabled]="selectedFiles.length >= maxFiles"
                (change)="onFileSelect($event)" style="display: none;">
         
         <p-button icon="pi pi-paperclip" [text]="true" size="small"
-                 [disabled]="selectedFiles.length >= maxFiles"
-                 (click)="fileInput.click()"
+          [disabled]="selectedFiles.length >= maxFiles"
+          (click)="fileInput.click()"
                  pTooltip="Fotoğraf ekle">
         </p-button>
         
@@ -127,16 +146,16 @@
 
       <!-- Text Input -->
       <input type="text" pInputText [(ngModel)]="newMessage"
-             placeholder="Mesajınızı yazın..."
-             (keydown.enter)="onSendMessage()"
+        placeholder="Mesajınızı yazın..."
+        (keydown.enter)="onSendMessage()"
              [disabled]="isLoading"
              class="message-input">
 
       <!-- Send Button -->
       <p-button icon="pi pi-send"
-               [disabled]="!newMessage.trim() && selectedFiles.length === 0 || isLoading"
-               (click)="onSendMessage()"
-               [rounded]="true"
+        [disabled]="!newMessage.trim() && selectedFiles.length === 0 || isLoading"
+        (click)="onSendMessage()"
+        [rounded]="true"
                severity="info">
       </p-button>
     </div>
