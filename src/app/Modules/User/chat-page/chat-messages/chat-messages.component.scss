@@ -2,10 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(135deg, 
-    rgba(15, 23, 42, 0.95) 0%, 
-    rgba(30, 41, 59, 0.9) 50%, 
-    rgba(15, 23, 42, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
   position: relative;
   overflow: hidden;
 
@@ -19,15 +16,13 @@
     min-height: 0;
   }
 
-  // Normal Div Scroll Area Styles
   .messages-scroll-area {
-    height: calc(100vh - 180px); // Chat page header + message controls + input
+    height: calc(100vh - 180px);
     width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
 
-    // Modern scrollbar
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -40,7 +35,6 @@
     &::-webkit-scrollbar-thumb {
       background: rgba(59, 130, 246, 0.6);
       border-radius: 3px;
-      transition: background 0.3s ease;
 
       &:hover {
         background: rgba(59, 130, 246, 0.8);
@@ -55,23 +49,10 @@
     gap: 16px;
   }
 
-  // Message Wrapper Styles
   .message-wrapper {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    animation: messageSlideIn 0.3s ease-out;
-
-    @keyframes messageSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
 
     &.user-message-wrapper {
       flex-direction: row-reverse;
@@ -84,20 +65,14 @@
           border: none;
           border-radius: 18px;
           border-bottom-right-radius: 6px;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+          color: white;
 
           .p-card-body {
             padding: 16px 20px;
-            color: white;
 
             .p-card-content {
               padding: 0;
             }
-          }
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
           }
         }
       }
@@ -114,20 +89,14 @@
           border: 1px solid rgba(229, 231, 235, 0.8);
           border-radius: 18px;
           border-bottom-left-radius: 6px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          color: #1f2937;
 
           .p-card-body {
             padding: 16px 20px;
-            color: #1f2937;
 
             .p-card-content {
               padding: 0;
             }
-          }
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
         }
       }
@@ -168,149 +137,36 @@
     }
   }
 
-  // Scroll to bottom button
+  .message-image {
+    margin: 8px 0;
+    max-width: 100%;
+    
+    ::ng-deep .p-image img {
+      max-width: 400px;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+  }
+
   .scroll-to-bottom-btn {
     position: absolute;
     bottom: 140px;
     right: 20px;
     z-index: 999;
-    animation: slideInUp 0.3s ease-out;
-
-    @keyframes slideInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
 
     ::ng-deep .p-button {
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-      transition: all 0.3s ease;
-
-      .p-button-icon {
-        font-size: 20px;
-        animation: bounce 2s infinite;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-      }
-      40% {
-        transform: translateY(-3px);
-      }
-      60% {
-        transform: translateY(-2px);
-      }
     }
   }
 
-  // Old input styles removed - replaced with new file upload system
-
-  // Responsive design
-  @media (max-width: 768px) {
-    .messages-wrapper {
-      padding-bottom: 100px;
+  .typing-card {
+    ::ng-deep .p-card {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
     }
-
-    .messages-scroll-area {
-      height: calc(100vh - 160px); // Mobilde daha az height
-    }
-
-    .scroll-to-bottom-btn {
-      bottom: 120px;
-      right: 16px;
-
-      ::ng-deep .p-button {
-        width: 44px;
-        height: 44px;
-
-        .p-button-icon {
-          font-size: 18px;
-        }
-      }
-    }
-
-    .messages-content {
-      padding: 16px;
-      gap: 12px;
-    }
-
-    .message-wrapper {
-      &.user-message-wrapper,
-      &.ai-message-wrapper {
-        max-width: 85%;
-      }
-
-      .message-card {
-        ::ng-deep .p-card .p-card-body {
-          padding: 12px 16px;
-        }
-      }
-
-      .message-content {
-        font-size: 14px;
-      }
-    }
-
-    .message-input-container {
-      padding: 0.75rem;
-
-      .input-wrapper {
-        padding: 0.5rem;
-
-        .message-input {
-          padding: 0.5rem;
-          font-size: 14px;
-        }
-
-        .send-btn {
-          width: 2rem;
-          height: 2rem;
-        }
-
-        .attach-btn {
-          width: 2rem;
-          height: 2rem;
-        }
-      }
-
-      .file-preview-area {
-        .preview-grid {
-          grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-
-          .preview-item .preview-image-wrapper {
-            width: 60px;
-            height: 60px;
-          }
-        }
-      }
-    }
-  }
-
-  // Typing Indicator Styles
-  .typing-indicator-card {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    backdrop-filter: blur(10px);
-    animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .typing-indicator {
@@ -319,19 +175,14 @@
     justify-content: space-between;
     padding: 4px 0;
     
-    .typing-text {
-      display: flex;
-      align-items: center;
+    span {
       font-size: 14px;
       color: #475569;
-      font-weight: 500;
-      opacity: 0.8;
     }
     
     .typing-dots {
       display: flex;
       gap: 4px;
-      align-items: center;
       
       .dot {
         width: 6px;
@@ -340,22 +191,13 @@
         border-radius: 50%;
         animation: typing-bounce 1.4s ease-in-out infinite;
         
-        &:nth-child(1) {
-          animation-delay: 0s;
-        }
-        
-        &:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-        
-        &:nth-child(3) {
-          animation-delay: 0.4s;
-        }
+        &:nth-child(1) { animation-delay: 0s; }
+        &:nth-child(2) { animation-delay: 0.2s; }
+        &:nth-child(3) { animation-delay: 0.4s; }
       }
     }
   }
 
-  // Typing Animations
   @keyframes typing-bounce {
     0%, 60%, 100% {
       transform: translateY(0);
@@ -366,26 +208,15 @@
       opacity: 1;
     }
   }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
-    }
-    50% {
-      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
-    }
-  }
 }
 
-// Message Input Area with File Upload
 .message-input-container {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background: rgba(30, 41, 59, 0.95);
-  backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
   padding: 1rem;
@@ -394,7 +225,6 @@
   max-width: 1200px;
   margin: 0 auto;
 
-  // File Preview Area
   .file-preview-area {
     background: rgba(15, 23, 42, 0.8);
     border-radius: 12px;
@@ -408,17 +238,10 @@
       align-items: center;
       margin-bottom: 0.75rem;
 
-      .preview-count {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+      span {
         font-size: 0.875rem;
         color: #cbd5e1;
         font-weight: 500;
-
-        i {
-          color: #3b82f6;
-        }
       }
     }
 
@@ -448,27 +271,12 @@
             object-fit: cover;
           }
 
-          .preview-overlay {
+          .remove-btn {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-
-            .remove-btn {
-              width: 24px;
-              height: 24px;
-            }
-          }
-
-          &:hover .preview-overlay {
-            opacity: 1;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
           }
         }
 
@@ -482,7 +290,6 @@
           .file-name {
             font-size: 0.75rem;
             color: #e2e8f0;
-            font-weight: 500;
             max-width: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -498,7 +305,6 @@
     }
   }
 
-  // Input Wrapper
   .input-wrapper {
     display: flex;
     align-items: center;
@@ -513,33 +319,23 @@
       display: flex;
       align-items: center;
 
-      .attach-btn {
+      ::ng-deep .p-button {
         width: 2.5rem;
         height: 2.5rem;
-        
-        ::ng-deep .p-button {
-          background: transparent;
-          border: none;
-          color: #94a3b8;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
 
-          &:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-          }
-
-          &:disabled {
-            background: transparent;
-            color: #64748b;
-            opacity: 0.5;
-          }
+        &:hover {
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
         }
       }
 
-      .file-count-badge {
+      .p-badge {
         position: absolute;
         top: -8px;
         right: -8px;
-        z-index: 1;
       }
     }
 
@@ -561,110 +357,87 @@
       }
     }
 
-    .send-btn {
+    ::ng-deep .p-button:last-child {
       width: 2.5rem;
       height: 2.5rem;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      border: none;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      }
+
+      &:disabled {
+        background: #374151;
+        color: #6b7280;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-messages-container {
+    .messages-wrapper {
+      padding-bottom: 100px;
+    }
+
+    .messages-scroll-area {
+      height: calc(100vh - 160px);
+    }
+
+    .messages-content {
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .message-wrapper {
+      &.user-message-wrapper,
+      &.ai-message-wrapper {
+        max-width: 85%;
+      }
+
+      .message-card {
+        ::ng-deep .p-card .p-card-body {
+          padding: 12px 16px;
+        }
+      }
+    }
+
+    .scroll-to-bottom-btn {
+      bottom: 120px;
+      right: 16px;
 
       ::ng-deep .p-button {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        border: none;
-        color: white;
-
-        &:hover:not(:disabled) {
-          background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-          transform: scale(1.05);
-        }
-
-        &:disabled {
-          background: #374151;
-          color: #6b7280;
-          transform: none;
-        }
+        width: 44px;
+        height: 44px;
       }
     }
   }
-}
 
-// Message Attachments Styling
-.message-attachments {
-  margin-top: 0.75rem;
+  .message-input-container {
+    padding: 0.75rem;
 
-  .attachment-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.75rem;
-    max-width: 400px;
+    .input-wrapper {
+      padding: 0.5rem;
 
-    .attachment-item {
-      display: flex;
-      flex-direction: column;
-
-      .attachment-image-wrapper {
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-
-        ::ng-deep .p-image {
-          width: 100%;
-          
-          img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-          }
-        }
+      .message-input {
+        padding: 0.5rem;
+        font-size: 14px;
       }
 
-      .attachment-info {
-        display: flex;
-        flex-direction: column;
-        margin-top: 0.5rem;
-        padding: 0 0.25rem;
+      ::ng-deep .p-button {
+        width: 2rem !important;
+        height: 2rem !important;
+      }
+    }
 
-        .attachment-name {
-          font-size: 0.75rem;
-          color: inherit;
-          font-weight: 500;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
+    .file-preview-area .preview-grid {
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
 
-        .attachment-size {
-          font-size: 0.625rem;
-          color: rgba(255, 255, 255, 0.6);
-          margin-top: 0.125rem;
-        }
+      .preview-item .preview-image-wrapper {
+        width: 60px;
+        height: 60px;
       }
     }
   }
-}
-
-.message-image {
-  margin: 8px 0;
-  max-width: 100%;
-  
-  .content-image {
-    width: 100%;
-    max-width: 500px;
-    height: auto;
-    border-radius: 8px;
-    overflow: hidden;
-    
-    ::ng-deep img {
-      width: 100%;
-      height: auto;
-      object-fit: contain;
-    }
-  }
-  
-  &:not(:last-child) {
-    margin-bottom: 16px;
-  }
-}
-
-.error-image {
-  opacity: 0.5;
-  filter: grayscale(100%);
 }

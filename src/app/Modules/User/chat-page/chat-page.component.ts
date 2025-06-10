@@ -10,7 +10,6 @@ import { ChatMessageService } from '../../../Core/Services/ChatMessageService/Ch
 
 // Models
 import { SendMessageRequest } from '../../../Model/Entity/Message/SentMessage.Request';
-import { SenderType } from '../../../Model/Enums/SenderType';
 import { ChatMessageDto } from '../../../Model/Entity/Message/ChatMessageDto';
 
 interface ChatSession {
@@ -44,12 +43,9 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   currentSessionId: string | null = null;
   messages: Message[] = [];
   
-  // Mobile responsive properties
+  // Mobile properties
   isMobile: boolean = false;
   showSessions: boolean = true;
-  
-  // UI Control properties
-  isControlsExpanded: boolean = false;
 
   // Loading states
   isLoadingSessions: boolean = false;
@@ -61,19 +57,13 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   // Error handling
   errorMessage: string = '';
 
-  // Component lifecycle
-  private destroy$ = new Subject<void>();
-
-  // Pagination and filtering properties
+  // Pagination
   currentPage: number = 1;
   pageSize: number = 50;
   totalMessages: number = 0;
   hasMoreMessages: boolean = false;
-  
-  // Date filtering
-  startDate?: string;
-  endDate?: string;
-  includeDeleted: boolean = false;
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private chatSessionService: ChatSessionService,
@@ -82,11 +72,9 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Only check screen size in browser environment
     if (isPlatformBrowser(this.platformId)) {
       this.checkScreenSize();
     } else {
-      // Set default values for SSR
       this.isMobile = false;
       this.showSessions = true;
     }
@@ -99,23 +87,17 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   }
 
   @HostListener('window:resize', ['$event'])
-  onResize(event: any) {
-    // Only handle resize in browser environment
+  onResize() {
     if (isPlatformBrowser(this.platformId)) {
       this.checkScreenSize();
     }
   }
 
   private checkScreenSize() {
-    // This method should only be called in browser environment
-    if (typeof window === 'undefined') {
-      console.warn('checkScreenSize called in non-browser environment');
-      return;
-    }
+    if (typeof window === 'undefined') return;
     
     this.isMobile = window.innerWidth <= 640;
     
-    // Mobilde oturum seçiliyse mesajları göster
     if (this.isMobile && this.currentSessionId) {
       this.showSessions = false;
     } else if (!this.isMobile) {
@@ -135,12 +117,10 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (sessions: ChatSessionListItem[]) => {
           this.sessions = this.mapSessionsToLocal(sessions);
-          console.log('Oturumlar yüklendi:', this.sessions);
         },
         error: (error) => {
           console.error('Oturumlar yüklenirken hata:', error);
           this.errorMessage = 'Oturumlar yüklenirken hata oluştu.';
-          // Fallback: Local test data
           this.loadTestSessions();
         }
       });
@@ -161,32 +141,25 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       return 'Henüz mesaj yok';
     }
     
-    // Use lastMessageDate if available, otherwise fallback to updatedDate or createdDate
     const lastMessageDate = new Date(session.lastMessageDate || session.updatedDate || session.createdDate);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - lastMessageDate.getTime());
     const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffHours < 1) {
-      return 'Az önce';
-    } else if (diffHours < 24) {
-      return `${diffHours} saat önce`;
-    } else if (diffDays === 1) {
-      return 'Dün';
-    } else if (diffDays <= 7) {
-      return `${diffDays} gün önce`;
-    } else {
-      return lastMessageDate.toLocaleDateString('tr-TR', {
-        day: 'numeric',
-        month: 'short',
-        year: lastMessageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      });
-    }
+    if (diffHours < 1) return 'Az önce';
+    if (diffHours < 24) return `${diffHours} saat önce`;
+    if (diffDays === 1) return 'Dün';
+    if (diffDays <= 7) return `${diffDays} gün önce`;
+    
+    return lastMessageDate.toLocaleDateString('tr-TR', {
+      day: 'numeric',
+      month: 'short',
+      year: lastMessageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
   }
 
   private loadTestSessions() {
-    // Test verisi - API çalışmadığında
     this.sessions = [
       {
         id: 'test-1',
@@ -200,22 +173,14 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
   onSessionSelected(sessionId: string) {
     this.currentSessionId = sessionId;
-    
-    // Reset filters when switching sessions
-    this.startDate = undefined;
-    this.endDate = undefined;
-    this.includeDeleted = false;
     this.currentPage = 1;
-    
     this.loadMessages(sessionId);
     
-    // Also get message count
-    this.onGetMessageCount();
-    
-    // Mobilde oturum seçildiğinde mesajlara geç
     if (this.isMobile) {
       this.showSessions = false;
     }
+    
+    setTimeout(() => this.scrollToBottom(), 100);
   }
 
   onNewSession() {
@@ -224,7 +189,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
     const request: CreateSessionRequest = {
       title: 'Yeni Sohbet',
-      modelUsed: 'gemini-2.0-flash' // Default model
+      modelUsed: 'gemini-2.0-flash'
     };
 
     this.chatSessionService.createSession(request)
@@ -234,9 +199,6 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (newSession) => {
-          console.log('Yeni oturum oluşturuldu:', newSession);
-          
-          // Local sessions listesine ekle
           const localSession: ChatSession = {
             id: newSession.id,
             title: newSession.title,
@@ -249,7 +211,6 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           this.currentSessionId = newSession.id;
           this.messages = [];
           
-          // Mobilde yeni oturum oluşturulduğunda mesajlara geç
           if (this.isMobile) {
             this.showSessions = false;
           }
@@ -257,8 +218,6 @@ export class ChatPageComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Yeni oturum oluşturulurken hata:', error);
           this.errorMessage = 'Yeni oturum oluşturulamadı.';
-          
-          // Fallback: Local session oluştur
           this.createLocalSession();
         }
       });
@@ -282,53 +241,61 @@ export class ChatPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSendMessage(message: string) {
+  onSendMessage(messageData: string) {
     if (!this.currentSessionId || this.isSendingMessage) return;
 
     this.isSendingMessage = true;
     this.errorMessage = '';
 
-    // Kullanıcı mesajını hemen ekle (optimistic update)
-    const userMessage: Message = {
-      id: Date.now(),
-      content: message,
-      sender: 'user',
-      timestamp: new Date(),
-      hasImage: false,
-      messageStatus: 0,
-      isActive: true
-    };
-    this.messages.push(userMessage); // Add to end (oldest first ordering)
+    try {
+      const parsedData = JSON.parse(messageData);
+      const message = parsedData.message || '';
+      const base64Images = parsedData.images || [];
 
-    const request: SendMessageRequest = {
-      sessionId: this.currentSessionId,
-      message: message,
-      base64Images: []
-    };
+      const userMessage: Message = {
+        id: Date.now(),
+        content: message,
+        sender: 'user',
+        timestamp: new Date(),
+        hasImage: base64Images.length > 0,
+        imageUrl: base64Images,
+        messageStatus: 0,
+        isActive: true
+      };
+      
+      this.messages = [...this.messages, userMessage];
+      this.updateSessionLastMessage(this.currentSessionId!, message);
+      
+      setTimeout(() => this.scrollToBottom(), 100);
 
-    this.chatMessageService.sendMessage(request)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isSendingMessage = false)
-      )
-      .subscribe({
-        next: (response: ChatMessageDto) => {
-          console.log('Mesaj gönderildi:', response);
-          
-          // Yanıt başarılı ise session listesindeki son mesajı güncelle
-          this.updateSessionLastMessage(this.currentSessionId!, message);
-          
-          // Mesaj gönderildikten sonra güncel mesajları getir (AI response dahil)
-          this.refreshMessagesAfterSend();
-        },
-        error: (error) => {
-          console.error('Mesaj gönderilirken hata:', error);
-          this.errorMessage = 'Mesaj gönderilemedi.';
-          
-          // Hata durumunda da mesajları yenile (belki mesaj gönderilmiştir)
-          this.refreshMessagesAfterSend();
-        }
-      });
+      const request: SendMessageRequest = {
+        sessionId: this.currentSessionId,
+        message: message,
+        base64Images: base64Images
+      };
+
+      this.chatMessageService.sendMessage(request)
+        .pipe(
+          takeUntil(this.destroy$),
+          finalize(() => {
+            this.isSendingMessage = false;
+            setTimeout(() => this.refreshMessagesAfterSend(), 100);
+          })
+        )
+        .subscribe({
+          next: (response: ChatMessageDto) => {
+            this.updateSessionLastMessage(this.currentSessionId!, message);
+          },
+          error: (error) => {
+            console.error('Mesaj gönderilirken hata:', error);
+            this.errorMessage = 'Mesaj gönderilemedi.';
+          }
+        });
+    } catch (error) {
+      console.error('Mesaj verisi işlenirken hata:', error);
+      this.isSendingMessage = false;
+      this.errorMessage = 'Mesaj formatı hatalı.';
+    }
   }
 
   private updateSessionLastMessage(sessionId: string, lastMessage: string) {
@@ -351,64 +318,43 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
   private pollForNewMessages(attempt: number) {
     if (!this.currentSessionId || attempt >= 5) {
-      // 5 deneme sonrasında fallback
       if (attempt >= 5) {
-        console.log('AI yanıtı için maksimum deneme sayısına ulaşıldı, simulated response gösteriliyor');
         this.isWaitingForAIResponse = false;
         this.simulateAIResponse();
       }
       return;
     }
 
-    const delay = attempt === 0 ? 1000 : 2000; // İlk deneme 1s, sonrakiler 2s
+    const delay = attempt === 0 ? 1000 : 2000;
     
     setTimeout(() => {
-      console.log(`Mesajlar kontrol ediliyor... Deneme: ${attempt + 1}`);
-      
       this.chatMessageService.getBySessionIdMessages(this.currentSessionId!, {
         pageNumber: 1,
         pageSize: this.pageSize,
-        includeDeleted: this.includeDeleted
+        includeDeleted: false
       })
-        .pipe(
-          takeUntil(this.destroy$)
-        )
+        .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
             const newMessages = this.mapMessagesToLocal(response.items || []);
             const currentCount = this.messages.length;
             const newCount = newMessages.length;
             
-            console.log(`Mesaj sayısı: ${currentCount} → ${newCount}`);
-
-            console.log('Yeni mesajlar:', newMessages);
-            
             if (newCount > currentCount) {
-              // Yeni mesaj(lar) var, güncelle
-              console.log('Yeni mesajlar bulundu, güncelleniyor...');
               this.messages = newMessages;
-              
-              // Pagination bilgilerini güncelle
               this.totalMessages = response.totalCount || 0;
               this.hasMoreMessages = (this.currentPage * this.pageSize) < this.totalMessages;
-              
-              // AI response geldiğinde scroll yapmayı chat-messages component'ine bırak
               this.isWaitingForAIResponse = false;
+              setTimeout(() => this.scrollToBottom(), 100);
               return;
             } else {
-              // Henüz yeni mesaj yok, tekrar dene
-              console.log('Henüz yeni mesaj yok, tekrar deneniyor...');
               this.pollForNewMessages(attempt + 1);
             }
           },
           error: (error) => {
-            console.error('Mesajları kontrol ederken hata:', error);
-            
             if (attempt < 2) {
-              // İlk 2 denemede hata varsa tekrar dene
               this.pollForNewMessages(attempt + 1);
             } else {
-              // 3. denemede de hata varsa fallback
               this.isWaitingForAIResponse = false;
               this.simulateAIResponse();
             }
@@ -424,17 +370,18 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       sender: 'ai',
       timestamp: new Date(),
       hasImage: false,
+      imageUrl: [],
       messageStatus: 0,
       isActive: true
     };
-    this.messages.push(aiResponse); // Add to end (oldest first ordering)
+    this.messages.push(aiResponse);
+    setTimeout(() => this.scrollToBottom(), 100);
   }
 
   private loadMessages(sessionId: string, loadMore: boolean = false) {
     this.isLoadingMessages = true;
     this.errorMessage = '';
     
-    // Reset pagination if not loading more
     if (!loadMore) {
       this.currentPage = 1;
       this.messages = [];
@@ -443,9 +390,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
     const params = {
       pageNumber: this.currentPage,
       pageSize: this.pageSize,
-      startDate: this.startDate,
-      endDate: this.endDate,
-      includeDeleted: this.includeDeleted
+      includeDeleted: false
     };
 
     this.chatMessageService.getBySessionIdMessages(sessionId, params)
@@ -458,14 +403,12 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           const newMessages = this.mapMessagesToLocal(response.items || []);
           
           if (loadMore) {
-            // Older messages'ı başa ekle (oldest first order maintained)
             this.messages = [...newMessages, ...this.messages];
           } else {
-            // Yeni mesaj listesi
             this.messages = newMessages;
+            setTimeout(() => this.scrollToBottom(), 200);
           }
 
-          // Pagination bilgilerini güncelle
           this.totalMessages = response.totalCount || 0;
           this.hasMoreMessages = (this.currentPage * this.pageSize) < this.totalMessages;
         },
@@ -474,13 +417,12 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           this.errorMessage = 'Mesajlar yüklenirken hata oluştu.';
           
           if (!loadMore) {
-            this.messages = []; // Boş mesaj listesi göster
+            this.messages = [];
           }
         }
       });
   }
 
-  // Load more messages (pagination)
   onLoadMoreMessages() {
     if (!this.currentSessionId || this.isLoadingMessages || !this.hasMoreMessages) {
       return;
@@ -490,220 +432,40 @@ export class ChatPageComponent implements OnInit, OnDestroy {
     this.loadMessages(this.currentSessionId, true);
   }
 
-  // Filter messages by date range
-  onFilterMessagesByDate(startDate: string, endDate: string) {
-    if (!this.currentSessionId) return;
-
-    this.startDate = startDate;
-    this.endDate = endDate;
-    this.loadMessages(this.currentSessionId);
-  }
-
-  // Clear date filter
-  onClearDateFilter() {
-    this.startDate = undefined;
-    this.endDate = undefined;
-    if (this.currentSessionId) {
-      this.loadMessages(this.currentSessionId);
-    }
-  }
-
-  // Toggle include deleted messages
-  onToggleIncludeDeleted() {
-    this.includeDeleted = !this.includeDeleted;
-    if (this.currentSessionId) {
-      this.loadMessages(this.currentSessionId);
-    }
-  }
-
-  // Get messages count for current session
-  onGetMessageCount() {
-    if (!this.currentSessionId) return;
-
-    const params = {
-      startDate: this.startDate,
-      endDate: this.endDate,
-      includeDeleted: this.includeDeleted
-    };
-
-    this.chatMessageService.getSessionMessageCount(this.currentSessionId, params)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (count) => {
-          console.log('Toplam mesaj sayısı:', count);
-          this.totalMessages = count;
-        },
-        error: (error) => {
-          console.error('Mesaj sayısı alınırken hata:', error);
-        }
-      });
-  }
-
-  // Search messages in current session
-  onSearchMessages(searchTerm: string) {
-    if (!this.currentSessionId || !searchTerm.trim()) {
-      // Clear search, reload messages
-      if (this.currentSessionId) {
-        this.loadMessages(this.currentSessionId);
-      }
-      return;
-    }
-
-    this.isLoadingMessages = true;
-
-    this.chatMessageService.searchSessionMessages(this.currentSessionId, searchTerm)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoadingMessages = false)
-      )
-      .subscribe({
-        next: (searchResults) => {
-          console.log('Arama sonuçları:', searchResults);
-          this.messages = this.mapMessagesToLocal(searchResults);
-          this.hasMoreMessages = false; // Search results don't have pagination
-        },
-        error: (error) => {
-          console.error('Mesaj arama hatası:', error);
-          this.errorMessage = 'Mesaj arama işlemi başarısız.';
-        }
-      });
-  }
-
-  // Advanced search with more options
-  onAdvancedSearchMessages(searchTerm: string, caseSensitive: boolean = false) {
-    if (!this.currentSessionId || !searchTerm.trim()) {
-      if (this.currentSessionId) {
-        this.loadMessages(this.currentSessionId);
-      }
-      return;
-    }
-
-    this.isLoadingMessages = true;
-
-    const params = {
-      searchTerm,
-      caseSensitive,
-      includeDeleted: this.includeDeleted
-    };
-
-    this.chatMessageService.searchSessionMessagesAdvanced(this.currentSessionId, params)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoadingMessages = false)
-      )
-      .subscribe({
-        next: (searchResults) => {
-          console.log('Gelişmiş arama sonuçları:', searchResults);
-          this.messages = this.mapMessagesToLocal(searchResults);
-          this.hasMoreMessages = false;
-        },
-        error: (error) => {
-          console.error('Gelişmiş arama hatası:', error);
-          this.errorMessage = 'Gelişmiş arama işlemi başarısız.';
-        }
-      });
-  }
-
-  // Get messages by sender type (User or AI)
-  onFilterMessagesBySender(senderType: 'user' | 'ai') {
-    if (!this.currentSessionId) return;
-
-    this.isLoadingMessages = true;
-    
-    const apiSenderType = senderType === 'user' ? 1 : 2; // SenderType enum values
-
-    this.chatMessageService.getMessagesBySenderType(this.currentSessionId, apiSenderType)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoadingMessages = false)
-      )
-      .subscribe({
-        next: (filteredMessages) => {
-          console.log(`${senderType} mesajları:`, filteredMessages);
-          this.messages = this.mapMessagesToLocal(filteredMessages);
-          this.hasMoreMessages = false;
-        },
-        error: (error) => {
-          console.error('Gönderen tipine göre filtreleme hatası:', error);
-          this.errorMessage = 'Mesaj filtreleme işlemi başarısız.';
-        }
-      });
-  }
-
-  // Refresh current session messages
   onRefreshMessages() {
     if (this.currentSessionId) {
       this.loadMessages(this.currentSessionId);
     }
   }
 
-  // Get today's messages
-  onGetTodaysMessages() {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
-    this.onFilterMessagesByDate(
-      startOfDay.toISOString(),
-      endOfDay.toISOString()
-    );
-  }
-
-  // Get this week's messages
-  onGetThisWeeksMessages() {
-    const today = new Date();
-    // Reset today to avoid mutation
-    const currentDate = new Date();
-    const firstDayOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay()));
-    const lastDayOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 6));
-
-    this.onFilterMessagesByDate(
-      firstDayOfWeek.toISOString(),
-      lastDayOfWeek.toISOString()
-    );
-  }
-
-  // Enhanced mapping with better timestamp handling
   private mapMessagesToLocal(messages: ChatMessageDto[]): Message[] {
-    console.log('Gelen ham mesajlar:', messages);
-    
     return messages
       .sort((a, b) => {
         const dateA = new Date(a.createdDate || a.sentAt).getTime();
         const dateB = new Date(b.createdDate || b.sentAt).getTime();
-        return dateA - dateB;
+        
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        
+        if (a.senderType !== b.senderType) {
+          return a.senderType === 1 ? -1 : 1;
+        }
+        
+        return 0;
       })
       .map((msg, index) => {
-        // Resim URL'lerini kontrol et ve işle
         let processedImageUrls: string[] = [];
         
-        // imageUrl kontrolü
         if (msg.imageUrl && Array.isArray(msg.imageUrl) && msg.imageUrl.length > 0) {
-          console.log(`Mesaj ${msg.id} için ham resim URL'leri:`, msg.imageUrl);
-          
           processedImageUrls = msg.imageUrl
-            .filter(url => url && typeof url === 'string' && url.trim() !== '') // Boş olmayan URL'leri filtrele
-            .map(url => {
-              try {
-                const tokenizedUrl = this.chatMessageService.getImageUrlWithToken(url);
-                console.log(`Mesaj ${msg.id} - İşlenmiş URL:`, tokenizedUrl);
-                return tokenizedUrl;
-              } catch (error) {
-                console.error(`Mesaj ${msg.id} - URL işleme hatası:`, error);
-                return url;
-              }
-            })
-            .filter(url => url !== ''); // Boş sonuçları filtrele
+            .filter(url => url && typeof url === 'string' && url.trim() !== '')
+            .filter(url => url !== '');
         }
 
-        // hasImage değerini URL'lerin varlığına göre belirle
         const hasImage = processedImageUrls.length > 0;
-        
-        if (hasImage) {
-          console.log(`Mesaj ${msg.id} için işlenmiş URL'ler:`, processedImageUrls);
-        }
 
-        const mappedMessage: Message = {
+        return {
           id: parseInt(msg.id) || index,
           content: msg.content || 'Mesaj içeriği bulunamadı',
           sender: msg.senderType === 1 ? 'user' : 'ai',
@@ -713,106 +475,42 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           messageStatus: msg.messageStatus,
           isActive: msg.isActive
         };
-
-        return mappedMessage;
       });
   }
 
-  // Mobilde oturumlara geri dön
+  private scrollToBottom() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
+    try {
+      const messagesContainer = document.querySelector('.chat-messages-container') || 
+                               document.querySelector('.messages-container') ||
+                               document.querySelector('[data-messages-container]');
+      
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else {
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+          });
+        }, 50);
+      }
+    } catch (error) {
+      console.warn('Scroll işlemi başarısız:', error);
+    }
+  }
+
   onBackToSessions() {
     this.showSessions = true;
   }
 
-  // Toggle message controls panel
-  onToggleControls() {
-    this.isControlsExpanded = !this.isControlsExpanded;
-  }
-
-  // Mobilde başlık bilgisi al
   getCurrentSessionTitle(): string {
     if (!this.currentSessionId) return 'Sohbet';
     const session = this.sessions.find(s => s.id === this.currentSessionId);
     return session?.title || 'Sohbet';
   }
 
-  // Session işlemleri
-  onDeleteSession(sessionId: string) {
-    if (!confirm('Bu oturumu silmek istediğinizden emin misiniz?')) {
-      return;
-    }
-
-    this.chatSessionService.softDeleteSession(sessionId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          console.log('Oturum silindi:', sessionId);
-          this.sessions = this.sessions.filter(s => s.id !== sessionId);
-          
-          if (this.currentSessionId === sessionId) {
-            this.currentSessionId = null;
-            this.messages = [];
-            if (this.isMobile) {
-              this.showSessions = true;
-            }
-          }
-        },
-        error: (error) => {
-          console.error('Oturum silinirken hata:', error);
-          this.errorMessage = 'Oturum silinemedi.';
-        }
-      });
-  }
-
-  onCloneSession(sessionId: string) {
-    this.chatSessionService.cloneSession(sessionId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (clonedSession) => {
-          console.log('Oturum klonlandı:', clonedSession);
-          
-          const localSession: ChatSession = {
-            id: clonedSession.id,
-            title: clonedSession.title,
-            lastMessage: 'Henüz mesaj yok',
-            timestamp: new Date(clonedSession.createdDate),
-            messageCount: 0
-          };
-          
-          this.sessions.unshift(localSession);
-        },
-        error: (error) => {
-          console.error('Oturum klonlanırken hata:', error);
-          this.errorMessage = 'Oturum klonlanamadı.';
-        }
-      });
-  }
-
-  onSearchSessions(searchTerm: string) {
-    if (!searchTerm.trim()) {
-      this.loadSessions();
-      return;
-    }
-
-    this.isLoadingSessions = true;
-    
-    this.chatSessionService.searchSessions(searchTerm)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoadingSessions = false)
-      )
-      .subscribe({
-        next: (sessions) => {
-          this.sessions = this.mapSessionsToLocal(sessions);
-          console.log('Arama sonuçları:', this.sessions);
-        },
-        error: (error) => {
-          console.error('Arama hatası:', error);
-          this.errorMessage = 'Arama işlemi başarısız.';
-        }
-      });
-  }
-
-  // Getter methods for template
   get hasError(): boolean {
     return !!this.errorMessage;
   }
@@ -827,10 +525,6 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
   get hasMessages(): boolean {
     return this.messages.length > 0;
-  }
-
-  get isFiltered(): boolean {
-    return !!(this.startDate || this.endDate || this.includeDeleted);
   }
 
   get canLoadMore(): boolean {

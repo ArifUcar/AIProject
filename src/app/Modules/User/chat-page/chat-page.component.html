@@ -1,35 +1,28 @@
 <div class="chat-page-container" [class.mobile-view]="isMobile">
-  <!-- Error Message (global) -->
+  <!-- Error Message -->
   <div *ngIf="hasError" class="error-banner">
     <span>⚠️ {{ errorMessage }}</span>
     <button (click)="errorMessage = ''" class="close-error">×</button>
   </div>
 
-  <!-- Mobil Header (sadece mobilde görünür) -->
-  <div class="mobile-header" *ngIf="isMobile" [class.show-sessions]="showSessions">
+  <!-- Mobile Header -->
+  <div class="mobile-header" *ngIf="isMobile">
     <div class="header-content">
-      <button 
-        *ngIf="!showSessions" 
-        class="back-button"
-        (click)="onBackToSessions()">
+      <button *ngIf="!showSessions" class="back-button" (click)="onBackToSessions()">
         ← Oturumlar
       </button>
       <h1>{{ showSessions ? 'Sohbet Oturumları' : getCurrentSessionTitle() }}</h1>
-      
-      <!-- Loading indicator in header -->
-      <div *ngIf="isLoading" class="header-loading">
+      <div *ngIf="isLoading" class="loading-spinner">
         <div class="spinner"></div>
       </div>
     </div>
   </div>
 
   <!-- Sessions Panel -->
-  <div 
-    class="chat-sessions" 
-    [class.mobile-hidden]="isMobile && !showSessions"
-    [class.mobile-visible]="isMobile && showSessions">
+  <div class="chat-sessions" 
+       [class.mobile-hidden]="isMobile && !showSessions"
+       [class.mobile-visible]="isMobile && showSessions">
     
-    <!-- Loading overlay for sessions -->
     <div *ngIf="isLoadingSessions" class="loading-overlay">
       <div class="loading-content">
         <div class="spinner large"></div>
@@ -46,113 +39,23 @@
   </div>
 
   <!-- Messages Panel -->
-  <div 
-    class="chat-messages"
-    [class.mobile-hidden]="isMobile && showSessions"
-    [class.mobile-visible]="isMobile && !showSessions">
+  <div class="chat-messages"
+       [class.mobile-hidden]="isMobile && showSessions"
+       [class.mobile-visible]="isMobile && !showSessions">
     
-    <!-- Message Controls Panel (when session is selected) -->
-    <div *ngIf="currentSessionId && !isMobile" class="message-controls" [class.expanded]="isControlsExpanded">
-      <div class="controls-header">
-        <div class="header-left">
-          <h3>{{ getCurrentSessionTitle() }}</h3>
-          <div class="message-stats">
-            <span class="stat-item">
-              📊 {{ messageStats.total }}
-            </span>
-            <span class="stat-item">
-              👤 {{ messageStats.user }}
-            </span>
-            <span class="stat-item">
-              🤖 {{ messageStats.ai }}
-            </span>
-            <span *ngIf="isFiltered" class="stat-item filtered">
-              🔍 Filtrelenmiş
-            </span>
-          </div>
-        </div>
-        <button 
-          class="toggle-controls-btn"
-          (click)="onToggleControls()"
-          [attr.aria-label]="isControlsExpanded ? 'Arama panelini kapat' : 'Arama panelini aç'">
-          <span class="toggle-icon" [class.rotated]="isControlsExpanded">
-            🔍
-          </span>
-          <span class="toggle-text">
-            {{ isControlsExpanded ? 'Gizle' : 'Ara' }}
-          </span>
-        </button>
-      </div>
-
-      <div class="controls-actions" [class.expanded]="isControlsExpanded">
-        <!-- Search -->
-        <div class="search-group">
-          <input 
-            type="text" 
-            placeholder="Mesajlarda ara..." 
-            #searchInput
-            (keyup.enter)="onSearchMessages(searchInput.value)"
-            class="search-input">
-          <button 
-            (click)="onSearchMessages(searchInput.value)"
-            class="search-btn">
-            🔍
-          </button>
-          <button 
-            (click)="searchInput.value = ''; onRefreshMessages()"
-            class="clear-btn">
-            ✖️
-          </button>
-        </div>
-
-        <!-- Quick Filters -->
-        <div class="quick-filters">
-          <button 
-            (click)="onGetTodaysMessages()"
-            class="filter-btn">
-            📅 Bugün
-          </button>
-          <button 
-            (click)="onGetThisWeeksMessages()"
-            class="filter-btn">
-            📅 Bu Hafta
-          </button>
-          <button 
-            (click)="onFilterMessagesBySender('user')"
-            class="filter-btn">
-            👤 Kullanıcı
-          </button>
-          <button 
-            (click)="onFilterMessagesBySender('ai')"
-            class="filter-btn">
-            🤖 AI
-          </button>
-          <button 
-            (click)="onClearDateFilter()"
-            class="filter-btn clear">
-            🔄 Tümü
-          </button>
-        </div>
-
-        <!-- Advanced Controls -->
-        <div class="advanced-controls">
-          <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              [checked]="includeDeleted"
-              (change)="onToggleIncludeDeleted()">
-            <span>Silinmiş mesajları dahil et</span>
-          </label>
-          <button 
-            (click)="onRefreshMessages()"
-            class="refresh-btn">
-            🔄 Yenile
-          </button>
+    <!-- Simple Message Header (Desktop only) -->
+    <div *ngIf="currentSessionId && !isMobile" class="message-header">
+      <div class="header-info">
+        <h3>{{ getCurrentSessionTitle() }}</h3>
+        <div class="message-stats">
+          <span>📊 {{ messageStats.total }}</span>
+          <span>👤 {{ messageStats.user }}</span>
+          <span>🤖 {{ messageStats.ai }}</span>
         </div>
       </div>
+      <button class="refresh-btn" (click)="onRefreshMessages()">🔄</button>
     </div>
     
-    <!-- Loading overlay for messages -->
     <div *ngIf="isLoadingMessages" class="loading-overlay">
       <div class="loading-content">
         <div class="spinner large"></div>
@@ -160,7 +63,7 @@
       </div>
     </div>
 
-    <!-- No session selected state -->
+    <!-- No Session Selected -->
     <div *ngIf="!currentSessionId && !isLoadingMessages" class="no-session-selected">
       <div class="no-session-content">
         <div class="no-session-icon">💬</div>
@@ -174,38 +77,19 @@
       <app-chat-messages
         [messages]="messages"
         [currentSessionId]="currentSessionId"
+        [isLoading]="isWaitingForAIResponse"
         (sendMessage)="onSendMessage($event)">
       </app-chat-messages>
 
-      <!-- AI Response Loading Indicator -->
-      <div *ngIf="isWaitingForAIResponse" class="ai-response-loading">
-        <div class="loading-indicator">
-          <div class="typing-animation">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <span class="loading-text">AI yanıtı bekleniyor...</span>
-        </div>
-      </div>
-
       <!-- Load More Button -->
       <div *ngIf="canLoadMore" class="load-more-container">
-        <button 
-          (click)="onLoadMoreMessages()"
-          class="load-more-btn"
-          [disabled]="isLoadingMessages">
-          <span *ngIf="!isLoadingMessages">📄 Daha Fazla Mesaj Yükle</span>
+        <button (click)="onLoadMoreMessages()" class="load-more-btn" [disabled]="isLoadingMessages">
+          <span *ngIf="!isLoadingMessages">📄 Daha Fazla Mesaj</span>
           <span *ngIf="isLoadingMessages">
             <div class="spinner small"></div>
             Yükleniyor...
           </span>
         </button>
-      </div>
-
-      <!-- End of Messages Indicator -->
-      <div *ngIf="hasMessages && !hasMoreMessages && !isFiltered" class="end-messages">
-        <span>🎉 Tüm mesajlar yüklendi</span>
       </div>
     </div>
   </div>
