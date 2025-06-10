@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 // PrimeNG imports
 import { ButtonModule } from 'primeng/button';
@@ -37,11 +37,31 @@ interface ChatSession {
   templateUrl: './chat-session.component.html',
   styleUrl: './chat-session.component.scss'
 })
-export class ChatSessionComponent {
+export class ChatSessionComponent implements OnInit, OnDestroy {
   @Input() sessions: ChatSession[] = [];
   @Input() activeSessionId: string | null = null;
   @Output() sessionSelected = new EventEmitter<string>();
   @Output() newSession = new EventEmitter<void>();
+  @Output() sessionOptions = new EventEmitter<string>();
+
+  showOptionsMenu: boolean = false;
+  optionsSessionId: string | null = null;
+
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
+
+  ngOnInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      document.addEventListener('click', this.handleDocumentClick.bind(this));
+    }
+  }
+
+  ngOnDestroy() {
+    if (isPlatformBrowser(this.platformId)) {
+      document.removeEventListener('click', this.handleDocumentClick.bind(this));
+    }
+  }
 
   onSelectSession(sessionId: string) {
     this.sessionSelected.emit(sessionId);
@@ -49,6 +69,49 @@ export class ChatSessionComponent {
 
   onCreateNewSession() {
     this.newSession.emit();
+  }
+
+  onShowOptions(sessionId: string, event: Event) {
+    event.stopPropagation();
+    this.optionsSessionId = sessionId;
+    this.showOptionsMenu = true;
+    this.sessionOptions.emit(sessionId);
+    console.log('Options menu açıldı:', sessionId);
+  }
+
+  onEditSession(sessionId: string, event: Event) {
+    event.stopPropagation();
+    console.log('Session düzenleme:', sessionId);
+    // Burada düzenleme modal'ı açılabilir
+  }
+
+  onDeleteSession(sessionId: string, event: Event) {
+    event.stopPropagation();
+    console.log('Session silme:', sessionId);
+    // Burada silme onayı modal'ı açılabilir
+  }
+
+  onCloseOptions() {
+    this.showOptionsMenu = false;
+    this.optionsSessionId = null;
+  }
+
+  closeOptionsMenu(event: Event) {
+    if (this.showOptionsMenu) {
+      event.stopPropagation();
+      this.showOptionsMenu = false;
+      this.optionsSessionId = null;
+    }
+  }
+
+  handleDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    const optionsContainer = target.closest('.options-container');
+    
+    if (!optionsContainer && this.showOptionsMenu) {
+      this.showOptionsMenu = false;
+      this.optionsSessionId = null;
+    }
   }
 
   // Format timestamp for display

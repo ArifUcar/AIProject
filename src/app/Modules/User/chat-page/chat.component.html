@@ -8,7 +8,9 @@
   <!-- Chat Layout -->
   <div class="chat-layout">
     <!-- Sessions Panel -->
-    <div class="sessions-panel">
+    <div class="sessions-panel" 
+         [class.mobile-hidden]="isMobile && !showSessions"
+         [class.mobile-fullscreen]="isMobile && showSessions">
       <div *ngIf="isLoadingSessions" class="loading-overlay">
         <div class="loading-content">
           <div class="spinner"></div>
@@ -25,9 +27,21 @@
     </div>
 
     <!-- Messages Panel -->
-    <div class="messages-panel">
+    <div class="messages-panel" 
+         [class.mobile-hidden]="isMobile && !showMessages"
+         [class.mobile-fullscreen]="isMobile && showMessages">
+      
+      <!-- Mobile Back Button -->
+      <div class="mobile-back-header" *ngIf="isMobile && showMessages">
+        <button class="back-button" (click)="goBackToSessions()">
+          <i class="pi pi-arrow-left"></i>
+          <span>Oturumlar</span>
+        </button>
+        <span class="current-session-title">{{ getCurrentSessionTitle() }}</span>
+      </div>
+
       <!-- Message Header -->
-      <div *ngIf="currentSessionId" class="message-header">
+      <div *ngIf="currentSessionId && (!isMobile || !showMessages)" class="message-header">
         <div class="header-info">
           <h3>{{ getCurrentSessionTitle() }}</h3>
           <div class="message-stats">

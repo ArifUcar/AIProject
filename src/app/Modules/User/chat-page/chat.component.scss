@@ -394,27 +394,32 @@
 }
 
 @media (max-width: 768px) {
-  .chat-container .chat-layout .sessions-panel {
-    width: 280px;
-    min-width: 280px;
-  }
-}
-
-@media (max-width: 640px) {
   .chat-container .chat-layout {
-    flex-direction: column;
+    flex-direction: row;
+    height: 100vh;
     
     .sessions-panel {
       width: 100%;
-      min-width: auto;
-      height: 220px;
+      min-width: 100%;
+      height: 100vh;
       border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: none;
+      
+      &.mobile-fullscreen {
+        display: flex !important;
+        flex-direction: column;
+      }
     }
     
     .messages-panel {
-      flex: 1;
-      height: calc(100vh - 220px);
+      width: 100%;
+      min-width: 100%;
+      height: 100vh;
+      
+      &.mobile-fullscreen {
+        display: flex !important;
+        flex-direction: column;
+      }
 
       .message-header {
         padding: 0.75rem 1rem;
@@ -440,12 +445,9 @@
         .header-model-selection {
           .custom-dropdown {
             width: 100%;
-            z-index: 10000;
 
             .dropdown-selected {
               height: 36px;
-              position: relative;
-              z-index: 1001;
 
               .selected-text {
                 padding: 0.4rem 0.6rem;
@@ -470,5 +472,62 @@
         }
       }
     }
+  }
+}
+
+// Mobile navigation classes
+.mobile-hidden {
+  display: none !important;
+}
+
+.mobile-fullscreen {
+  width: 100% !important;
+  min-width: 100% !important;
+  flex: 1 !important;
+}
+
+.mobile-back-header {
+  background: rgba(20, 20, 25, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .back-button {
+    background: transparent;
+    border: none;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .current-session-title {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+    font-size: 1rem;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 } 

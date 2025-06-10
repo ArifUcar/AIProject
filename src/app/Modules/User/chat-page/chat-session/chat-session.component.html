@@ -36,12 +36,7 @@
           <div class="session-content">
             <!-- Avatar Section -->
             <div class="session-avatar-section">
-              <p-avatar 
-                [label]="getSessionInitials(session.title)"
-                [style]="{'background-color': getStatusColor(session.isOnline), 'color': 'white'}"
-                size="large"
-                shape="circle">
-              </p-avatar>
+             
               
               <!-- Online Status Indicator -->
               <div 
@@ -76,15 +71,32 @@
 
             <!-- Actions -->
             <div class="session-actions" *ngIf="session.id === activeSessionId">
-              <p-button 
-                icon="pi pi-ellipsis-v"
-                [text]="true"
-                [rounded]="true"
-                size="small"
-                severity="secondary"
-                pTooltip="Seçenekler"
-                (click)="$event.stopPropagation()">
-              </p-button>
+              <div class="options-container">
+                <p-button 
+                  icon="pi pi-ellipsis-v"
+                  [text]="true"
+                  [rounded]="true"
+                  size="small"
+                  severity="secondary"
+                  pTooltip="Seçenekler"
+                  (click)="onShowOptions(session.id, $event)"
+                  class="options-btn">
+                </p-button>
+                
+                <!-- Options Dropdown Menu -->
+                <div class="options-menu" 
+                     *ngIf="showOptionsMenu && optionsSessionId === session.id"
+                     (click)="$event.stopPropagation()">
+                  <div class="menu-item" (click)="onEditSession(session.id, $event)">
+                    <i class="pi pi-edit"></i>
+                    <span>Düzenle</span>
+                  </div>
+                  <div class="menu-item delete" (click)="onDeleteSession(session.id, $event)">
+                    <i class="pi pi-trash"></i>
+                    <span>Sil</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </p-card>

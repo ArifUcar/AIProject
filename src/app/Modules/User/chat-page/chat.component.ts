@@ -68,6 +68,11 @@ export class ChatComponent implements OnInit, OnDestroy {
   isLoadingModels: boolean = false;
   isDropdownOpen: boolean = false;
 
+  // Mobile navigation
+  showSessions: boolean = true; // Mobile'da başlangıçta sessions göster
+  showMessages: boolean = false; // Mobile'da başlangıçta messages gizle
+  isMobile: boolean = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -82,12 +87,15 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.loadSessions();
     this.loadModels();
     this.setupDocumentClickListener();
+    this.checkIfMobile();
+    this.setupWindowResizeListener();
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
     this.removeDocumentClickListener();
+    this.removeWindowResizeListener();
   }
 
   // Document click listener for dropdown
@@ -203,6 +211,12 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.loadMessages(sessionId);
     this.scrollToBottom();
+    
+    // Mobile'da messages sayfasına geç
+    if (this.isMobile) {
+      this.showSessions = false;
+      this.showMessages = true;
+    }
   }
 
   onNewSession() {
@@ -506,5 +520,56 @@ export class ChatComponent implements OnInit, OnDestroy {
         // Hata durumunda kullanıcıya bilgi verilebilir
       }
     });
+  }
+
+  private checkIfMobile() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.isMobile = window.innerWidth <= 768;
+      this.updateMobileNavigation();
+    }
+  }
+
+  private setupWindowResizeListener() {
+    if (isPlatformBrowser(this.platformId)) {
+      window.addEventListener('resize', this.onWindowResize.bind(this));
+    }
+  }
+
+  private removeWindowResizeListener() {
+    if (isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('resize', this.onWindowResize.bind(this));
+    }
+  }
+
+  private onWindowResize() {
+    this.checkIfMobile();
+  }
+
+  private updateMobileNavigation() {
+    if (this.isMobile) {
+      // Mobile'da eğer session seçili ise messages göster
+      if (this.currentSessionId) {
+        this.showSessions = false;
+        this.showMessages = true;
+      } else {
+        this.showSessions = true;
+        this.showMessages = false;
+      }
+    } else {
+      // Desktop'ta her ikisini de göster
+      this.showSessions = true;
+      this.showMessages = true;
+    }
+  }
+
+  // Mobile navigation methods
+  goBackToSessions() {
+    if (this.isMobile) {
+      this.showSessions = true;
+      this.showMessages = false;
+      // Session seçimini temizlemek istersen:
+      // this.currentSessionId = null;
+      // this.messages = [];
+    }
   }
 } 

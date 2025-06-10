@@ -12,12 +12,13 @@
     flex-direction: column;
     position: relative;
     overflow: hidden;
-    padding-bottom: 120px;
+    padding-bottom: 150px; // Desktop için mesajları yukarı çıkarmak için
     min-height: 0;
+    z-index: 200;
   }
 
   .messages-scroll-area {
-    height: calc(100vh - 140px);
+    height: calc(100vh - 180px); // Desktop için input alanı için daha fazla boşluk
     width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
@@ -44,10 +45,11 @@
   }
 
   .messages-content {
-    padding: 20px;
+    padding: 12px 20px; // Desktop için normale döndürdüm
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 16px; // Desktop için normale döndürdüm
+    margin-bottom: 60px; // 40px'den 60px'e çıkardım (uzun mesajlar için)
   }
 
   .message-wrapper {
@@ -152,14 +154,13 @@
 
   .scroll-to-bottom-btn {
     position: absolute;
-    bottom: 140px;
+    bottom: 160px;
     right: 20px;
     z-index: 999;
 
     ::ng-deep .p-button {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+      width: 44px;
+      height: 44px;
     }
   }
 
@@ -219,7 +220,7 @@
   background: rgba(30, 41, 59, 0.95);
   backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000;
+  z-index: 1000; // 100'den 1000'e çıkardım (mesajlardan daha yüksek)
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -379,16 +380,17 @@
 @media (max-width: 768px) {
   .chat-messages-container {
     .messages-wrapper {
-      padding-bottom: 100px;
+      padding-bottom: 130px; // Mobile için mesajları yukarı çıkarmak için
     }
 
     .messages-scroll-area {
-      height: calc(100vh - 120px); // Mobile için daha da fazla alan
+      height: calc(100vh - 170px); // Mobile için input alanı için daha fazla boşluk
     }
 
     .messages-content {
-      padding: 16px;
+      padding: 8px 16px; // Üst padding'i azalttım
       gap: 12px;
+      margin-bottom: 50px; // 30px'den 50px'e çıkardım (uzun mesajlar için)
     }
 
     .message-wrapper {
@@ -405,7 +407,7 @@
     }
 
     .scroll-to-bottom-btn {
-      bottom: 120px;
+      bottom: 140px; // Mobile için padding'e göre ayarlandı (130+10)
       right: 16px;
 
       ::ng-deep .p-button {
@@ -415,7 +417,11 @@
     }
   }
 
+  // Mobile'da message input container full width
   .message-input-container {
+    left: 0;
+    right: 0;
+    max-width: 100%;
     padding: 0.75rem;
 
     .input-wrapper {
