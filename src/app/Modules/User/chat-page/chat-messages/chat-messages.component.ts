@@ -11,7 +11,6 @@ import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
 import { ImageModule } from 'primeng/image';
 import { BadgeModule } from 'primeng/badge';
-import { DropdownModule } from 'primeng/dropdown';
 
 // Shared Components
 import { CodeBlockComponent } from '../../../../Shared/Components/code-block/code-block.component';
@@ -50,7 +49,7 @@ interface ParsedContent {
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, InputTextModule, CardModule,
-    AvatarModule, TooltipModule, CodeBlockComponent, ImageModule, BadgeModule, DropdownModule
+    AvatarModule, TooltipModule, CodeBlockComponent, ImageModule, BadgeModule
   ],
   templateUrl: './chat-messages.component.html',
   styleUrl: './chat-messages.component.scss'
@@ -66,11 +65,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   selectedFiles: AttachedFile[] = [];
   maxFiles: number = 5;
   maxFileSize: number = 2 * 1024 * 1024; // 2MB
-  
-  // Model selection
-  models: any[] = [];
-  selectedModel: any = null;
-  isLoadingModels: boolean = false;
   
   // Image URL cache
   private imageUrlCache = new Map<string, SafeUrl | string>();
@@ -104,7 +98,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
     this.isViewInitialized = true;
     this.shouldScrollToBottom = true;
     this.scrollToBottom();
-    this.loadModels();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -457,148 +450,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
 
   public onSessionChanged() {
     this.shouldScrollToBottom = false;
-  }
-
-  // Model selection methods
-  loadModels() {
-    this.isLoadingModels = true;
-    console.log('Modeller yükleniyor...');
-    
-    this.planUserService.getPlanModels().subscribe({
-      next: (response) => {
-        console.log('API yanıtı:', response);
-        
-        try {
-          if (response && response.models) {
-            // Modelleri virgülle ayrıştır ve dropdown için formatla
-            const modelList = response.models.split(', ').map(model => ({
-              label: model.trim(),
-              value: model.trim()
-            }));
-            
-            console.log('Formatlanmış modeller:', modelList);
-            this.models = modelList;
-            
-            // Modeller yüklendikten sonra session modelini kontrol et
-            if (this.models.length > 0) {
-              if (this.currentSessionId) {
-                this.loadSessionModel();
-              } else {
-                // Session yoksa ilk modeli seç
-                this.selectedModel = this.models[0];
-                console.log('Varsayılan model seçildi:', this.selectedModel);
-              }
-            }
-          } else {
-            console.warn('API yanıtında models alanı bulunamadı');
-            // Fallback: Varsayılan modeller
-            this.models = [
-              { label: 'GPT-4', value: 'gpt-4' },
-              { label: 'GPT-3.5', value: 'gpt-3.5-turbo' }
-            ];
-            this.selectedModel = this.models[0];
-          }
-        } catch (error) {
-          console.error('Model parsing hatası:', error);
-          // Fallback: Varsayılan modeller
-          this.models = [
-            { label: 'GPT-4', value: 'gpt-4' },
-            { label: 'GPT-3.5', value: 'gpt-3.5-turbo' }
-          ];
-          this.selectedModel = this.models[0];
-        }
-        
-        this.isLoadingModels = false;
-        this.cdr.detectChanges(); // Force change detection
-        console.log('Model yüklendi, loading durumu:', this.isLoadingModels);
-      },
-      error: (error) => {
-        console.error('Model yükleme hatası:', error);
-        
-        // Hata durumunda varsayılan modeller
-        this.models = [
-          { label: 'GPT-4', value: 'gpt-4' },
-          { label: 'GPT-3.5', value: 'gpt-3.5-turbo' },
-          { label: 'Claude', value: 'claude-3-sonnet' }
-        ];
-        this.selectedModel = this.models[0];
-        
-        this.isLoadingModels = false;
-        this.cdr.detectChanges(); // Force change detection
-        console.log('Hata sonrası loading durumu:', this.isLoadingModels);
-      }
-    });
-  }
-
-  onModelChange(event: any) {
-    this.selectedModel = event.value;
-    console.log('Model değişti:', this.selectedModel);
-    
-    // Eğer aktif bir session varsa, modeli güncelle
-    if (this.currentSessionId && this.selectedModel) {
-      const modelValue = this.selectedModel.value || this.selectedModel;
-      console.log('Session modeli güncelleniyor:', modelValue);
-      this.updateSessionModel(this.currentSessionId, modelValue);
-    }
-  }
-
-  updateSessionModel(sessionId: string, modelUsed: string) {
-    const request = {
-      sessionId: sessionId,
-      modelUsed: modelUsed
-    };
-
-    this.chatSessionService.updateSessionModel(request).subscribe({
-      next: (response) => {
-        console.log('Session modeli başarıyla güncellendi:', response);
-        // Başarılı güncelleme mesajı gösterilebilir
-      },
-      error: (error) => {
-        console.error('Session modeli güncelleme hatası:', error);
-        // Hata durumunda kullanıcıya bilgi verilebilir
-      }
-    });
-  }
-
-  loadSessionModel() {
-    if (!this.currentSessionId) {
-      console.log('Session ID yok, model yüklenmeyecek');
-      return;
-    }
-    
-    console.log('Session modeli yükleniyor:', this.currentSessionId);
-    
-    this.chatSessionService.getSessionById(this.currentSessionId).subscribe({
-      next: (session) => {
-        console.log('Session detayları:', session);
-        
-        if (session.modelUsed && this.models.length > 0) {
-          // Session'ın mevcut modelini dropdown'da seç
-          const currentModel = this.models.find(model => model.value === session.modelUsed);
-          if (currentModel) {
-            this.selectedModel = currentModel;
-            console.log('Session modeli bulundu ve seçildi:', currentModel);
-          } else {
-            // Eğer session'ın modeli dropdown'da yoksa, ilk modeli seç
-            this.selectedModel = this.models[0];
-            console.log('Session modeli bulunamadı, varsayılan seçildi:', this.selectedModel);
-          }
-        } else {
-          console.log('Session modelUsed bilgisi yok veya models listesi boş');
-          if (this.models.length > 0) {
-            this.selectedModel = this.models[0];
-          }
-        }
-      },
-      error: (error) => {
-        console.error('Session model yükleme hatası:', error);
-        // Hata durumunda ilk modeli seç
-        if (this.models.length > 0) {
-          this.selectedModel = this.models[0];
-          console.log('Hata sonrası varsayılan model seçildi:', this.selectedModel);
-        }
-      }
-    });
   }
 
   ngOnDestroy() {

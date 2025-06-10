@@ -20,6 +20,7 @@ interface ChatSession {
   lastMessage: string;
   timestamp: Date;
   messageCount?: number;
+  modelUsed?: string;
 }
 
 interface Message {
@@ -167,7 +168,8 @@ export class ChatComponent implements OnInit, OnDestroy {
       title: session.title,
       lastMessage: this.formatLastMessage(session),
       timestamp: new Date(session.updatedDate || session.createdDate),
-      messageCount: session.messageCount
+      messageCount: session.messageCount,
+      modelUsed: session.modelUsed
     }));
   }
 
@@ -201,7 +203,8 @@ export class ChatComponent implements OnInit, OnDestroy {
         title: 'Genel Sohbet',
         lastMessage: 'Merhaba, nasıl yardımcı olabilirim?',
         timestamp: new Date(),
-        messageCount: 1
+        messageCount: 1,
+        modelUsed: 'gpt-4'
       }
     ];
   }
@@ -209,6 +212,24 @@ export class ChatComponent implements OnInit, OnDestroy {
   onSessionSelected(sessionId: string) {
     this.currentSessionId = sessionId;
     this.currentPage = 1;
+    
+    // Seçilen session'ı bul
+    const selectedSession = this.sessions.find(s => s.id === sessionId);
+    if (selectedSession && selectedSession.modelUsed) {
+      // Session'ın modelini bul ve seç
+      const sessionModel = this.models.find(m => m.value === selectedSession.modelUsed);
+      if (sessionModel) {
+        console.log('Session modeli bulundu ve seçildi:', sessionModel);
+        this.selectedModel = sessionModel;
+      } else {
+        console.log('Session modeli bulunamadı, varsayılan model kullanılıyor');
+        // Eğer session'ın modeli listede yoksa ilk modeli seç
+        if (this.models.length > 0) {
+          this.selectedModel = this.models[0];
+        }
+      }
+    }
+    
     this.loadMessages(sessionId);
     
     // Mobile'da messages sayfasına geç
@@ -221,7 +242,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   onNewSession() {
     const request: CreateSessionRequest = {
       title: 'Yeni Sohbet',
-      modelUsed: 'gemini-2.0-flash'
+      modelUsed: this.selectedModel?.value || 'gpt-4'
     };
 
     this.chatSessionService.createSession(request)
@@ -233,7 +254,8 @@ export class ChatComponent implements OnInit, OnDestroy {
             title: newSession.title,
             lastMessage: 'Henüz mesaj yok',
             timestamp: new Date(newSession.createdDate),
-            messageCount: 0
+            messageCount: 0,
+            modelUsed: newSession.modelUsed
           };
           
           this.sessions.unshift(localSession);
