@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ChatSessionComponent } from './chat-session/chat-session.component';
 import { ChatMessagesComponent } from './chat-messages/chat-messages.component';
@@ -32,26 +32,23 @@ interface Message {
 }
 
 @Component({
-  selector: 'app-chat-page',
+  selector: 'app-chat',
   standalone: true,
   imports: [CommonModule, ChatSessionComponent, ChatMessagesComponent],
-  templateUrl: './chat-page.component.html',
-  styleUrl: './chat-page.component.scss'
+  templateUrl: './chat.component.html',
+  styleUrl: './chat.component.scss'
 })
-export class ChatPageComponent implements OnInit, OnDestroy {
+export class ChatComponent implements OnInit, OnDestroy {
+  @ViewChild(ChatMessagesComponent) chatMessagesComponent!: ChatMessagesComponent;
+  
   sessions: ChatSession[] = [];
   currentSessionId: string | null = null;
   messages: Message[] = [];
   
-  // Mobile properties
-  isMobile: boolean = false;
-  showSessions: boolean = true;
-
   // Loading states
   isLoadingSessions: boolean = false;
   isLoadingMessages: boolean = false;
   isSendingMessage: boolean = false;
-  isCreatingSession: boolean = false;
   isWaitingForAIResponse: boolean = false;
 
   // Error handling
@@ -72,37 +69,12 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.checkScreenSize();
-    } else {
-      this.isMobile = false;
-      this.showSessions = true;
-    }
     this.loadSessions();
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  @HostListener('window:resize', ['$event'])
-  onResize() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.checkScreenSize();
-    }
-  }
-
-  private checkScreenSize() {
-    if (typeof window === 'undefined') return;
-    
-    this.isMobile = window.innerWidth <= 640;
-    
-    if (this.isMobile && this.currentSessionId) {
-      this.showSessions = false;
-    } else if (!this.isMobile) {
-      this.showSessions = true;
-    }
   }
 
   private loadSessions() {
@@ -175,28 +147,17 @@ export class ChatPageComponent implements OnInit, OnDestroy {
     this.currentSessionId = sessionId;
     this.currentPage = 1;
     this.loadMessages(sessionId);
-    
-    if (this.isMobile) {
-      this.showSessions = false;
-    }
-    
-    setTimeout(() => this.scrollToBottom(), 100);
+    this.scrollToBottom();
   }
 
   onNewSession() {
-    this.isCreatingSession = true;
-    this.errorMessage = '';
-
     const request: CreateSessionRequest = {
       title: 'Yeni Sohbet',
       modelUsed: 'gemini-2.0-flash'
     };
 
     this.chatSessionService.createSession(request)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isCreatingSession = false)
-      )
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (newSession) => {
           const localSession: ChatSession = {
@@ -210,35 +171,12 @@ export class ChatPageComponent implements OnInit, OnDestroy {
           this.sessions.unshift(localSession);
           this.currentSessionId = newSession.id;
           this.messages = [];
-          
-          if (this.isMobile) {
-            this.showSessions = false;
-          }
         },
         error: (error) => {
           console.error('Yeni oturum oluşturulurken hata:', error);
           this.errorMessage = 'Yeni oturum oluşturulamadı.';
-          this.createLocalSession();
         }
       });
-  }
-
-  private createLocalSession() {
-    const newSession: ChatSession = {
-      id: 'local-' + Date.now().toString(),
-      title: 'Yeni Sohbet (Local)',
-      lastMessage: 'Henüz mesaj yok',
-      timestamp: new Date(),
-      messageCount: 0
-    };
-    
-    this.sessions.unshift(newSession);
-    this.currentSessionId = newSession.id;
-    this.messages = [];
-    
-    if (this.isMobile) {
-      this.showSessions = false;
-    }
   }
 
   onSendMessage(messageData: string) {
@@ -252,6 +190,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       const message = parsedData.message || '';
       const base64Images = parsedData.images || [];
 
+      // Kullanıcı mesajını ekle
       const userMessage: Message = {
         id: Date.now(),
         content: message,
@@ -265,8 +204,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       
       this.messages = [...this.messages, userMessage];
       this.updateSessionLastMessage(this.currentSessionId!, message);
-      
-      setTimeout(() => this.scrollToBottom(), 100);
+      this.scrollToBottom();
 
       const request: SendMessageRequest = {
         sessionId: this.currentSessionId,
@@ -277,14 +215,11 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       this.chatMessageService.sendMessage(request)
         .pipe(
           takeUntil(this.destroy$),
-          finalize(() => {
-            this.isSendingMessage = false;
-            setTimeout(() => this.refreshMessagesAfterSend(), 100);
-          })
+          finalize(() => this.isSendingMessage = false)
         )
         .subscribe({
           next: (response: ChatMessageDto) => {
-            this.updateSessionLastMessage(this.currentSessionId!, message);
+            this.refreshMessages();
           },
           error: (error) => {
             console.error('Mesaj gönderilirken hata:', error);
@@ -305,77 +240,15 @@ export class ChatPageComponent implements OnInit, OnDestroy {
         ? lastMessage.substring(0, 50) + '...' 
         : lastMessage;
       this.sessions[sessionIndex].timestamp = new Date();
-      this.sessions[sessionIndex].messageCount = (this.sessions[sessionIndex].messageCount || 0) + 1;
     }
   }
 
-  private refreshMessagesAfterSend() {
+  private refreshMessages() {
     if (!this.currentSessionId) return;
 
-    this.isWaitingForAIResponse = true;
-    this.pollForNewMessages(0);
-  }
-
-  private pollForNewMessages(attempt: number) {
-    if (!this.currentSessionId || attempt >= 5) {
-      if (attempt >= 5) {
-        this.isWaitingForAIResponse = false;
-        this.simulateAIResponse();
-      }
-      return;
-    }
-
-    const delay = attempt === 0 ? 1000 : 2000;
-    
     setTimeout(() => {
-      this.chatMessageService.getBySessionIdMessages(this.currentSessionId!, {
-        pageNumber: 1,
-        pageSize: this.pageSize,
-        includeDeleted: false
-      })
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (response) => {
-            const newMessages = this.mapMessagesToLocal(response.items || []);
-            const currentCount = this.messages.length;
-            const newCount = newMessages.length;
-            
-            if (newCount > currentCount) {
-              this.messages = newMessages;
-              this.totalMessages = response.totalCount || 0;
-              this.hasMoreMessages = (this.currentPage * this.pageSize) < this.totalMessages;
-              this.isWaitingForAIResponse = false;
-              setTimeout(() => this.scrollToBottom(), 100);
-              return;
-            } else {
-              this.pollForNewMessages(attempt + 1);
-            }
-          },
-          error: (error) => {
-            if (attempt < 2) {
-              this.pollForNewMessages(attempt + 1);
-            } else {
-              this.isWaitingForAIResponse = false;
-              this.simulateAIResponse();
-            }
-          }
-        });
-    }, delay);
-  }
-
-  private simulateAIResponse() {
-    const aiResponse: Message = {
-      id: Date.now(),
-      content: 'Özür dilerim, şu anda AI servisiyle bağlantı kuramıyorum. Lütfen daha sonra tekrar deneyin.',
-      sender: 'ai',
-      timestamp: new Date(),
-      hasImage: false,
-      imageUrl: [],
-      messageStatus: 0,
-      isActive: true
-    };
-    this.messages.push(aiResponse);
-    setTimeout(() => this.scrollToBottom(), 100);
+      this.loadMessages(this.currentSessionId!, false);
+    }, 1000);
   }
 
   private loadMessages(sessionId: string, loadMore: boolean = false) {
@@ -406,7 +279,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
             this.messages = [...newMessages, ...this.messages];
           } else {
             this.messages = newMessages;
-            setTimeout(() => this.scrollToBottom(), 200);
+            this.scrollToBottom();
           }
 
           this.totalMessages = response.totalCount || 0;
@@ -415,27 +288,15 @@ export class ChatPageComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Mesajlar yüklenirken hata:', error);
           this.errorMessage = 'Mesajlar yüklenirken hata oluştu.';
-          
-          if (!loadMore) {
-            this.messages = [];
-          }
         }
       });
   }
 
   onLoadMoreMessages() {
-    if (!this.currentSessionId || this.isLoadingMessages || !this.hasMoreMessages) {
-      return;
-    }
+    if (!this.currentSessionId || this.isLoadingMessages || !this.hasMoreMessages) return;
 
     this.currentPage++;
     this.loadMessages(this.currentSessionId, true);
-  }
-
-  onRefreshMessages() {
-    if (this.currentSessionId) {
-      this.loadMessages(this.currentSessionId);
-    }
   }
 
   private mapMessagesToLocal(messages: ChatMessageDto[]): Message[] {
@@ -443,34 +304,21 @@ export class ChatPageComponent implements OnInit, OnDestroy {
       .sort((a, b) => {
         const dateA = new Date(a.createdDate || a.sentAt).getTime();
         const dateB = new Date(b.createdDate || b.sentAt).getTime();
-        
-        if (dateA !== dateB) {
-          return dateA - dateB;
-        }
-        
-        if (a.senderType !== b.senderType) {
-          return a.senderType === 1 ? -1 : 1;
-        }
-        
-        return 0;
+        return dateA - dateB;
       })
       .map((msg, index) => {
         let processedImageUrls: string[] = [];
         
-        if (msg.imageUrl && Array.isArray(msg.imageUrl) && msg.imageUrl.length > 0) {
-          processedImageUrls = msg.imageUrl
-            .filter(url => url && typeof url === 'string' && url.trim() !== '')
-            .filter(url => url !== '');
+        if (msg.imageUrl && Array.isArray(msg.imageUrl)) {
+          processedImageUrls = msg.imageUrl.filter(url => url && url.trim() !== '');
         }
-
-        const hasImage = processedImageUrls.length > 0;
 
         return {
           id: parseInt(msg.id) || index,
           content: msg.content || 'Mesaj içeriği bulunamadı',
           sender: msg.senderType === 1 ? 'user' : 'ai',
           timestamp: new Date(msg.createdDate || msg.sentAt),
-          hasImage: hasImage,
+          hasImage: processedImageUrls.length > 0,
           imageUrl: processedImageUrls,
           messageStatus: msg.messageStatus,
           isActive: msg.isActive
@@ -481,28 +329,11 @@ export class ChatPageComponent implements OnInit, OnDestroy {
   private scrollToBottom() {
     if (!isPlatformBrowser(this.platformId)) return;
     
-    try {
-      const messagesContainer = document.querySelector('.chat-messages-container') || 
-                               document.querySelector('.messages-container') ||
-                               document.querySelector('[data-messages-container]');
-      
-      if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      } else {
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-          });
-        }, 50);
+    setTimeout(() => {
+      if (this.chatMessagesComponent) {
+        this.chatMessagesComponent.forceScrollToBottom();
       }
-    } catch (error) {
-      console.warn('Scroll işlemi başarısız:', error);
-    }
-  }
-
-  onBackToSessions() {
-    this.showSessions = true;
+    }, 100);
   }
 
   getCurrentSessionTitle(): string {
@@ -513,10 +344,6 @@ export class ChatPageComponent implements OnInit, OnDestroy {
 
   get hasError(): boolean {
     return !!this.errorMessage;
-  }
-
-  get isLoading(): boolean {
-    return this.isLoadingSessions || this.isLoadingMessages || this.isCreatingSession;
   }
 
   get hasActiveSessions(): boolean {
@@ -538,8 +365,7 @@ export class ChatPageComponent implements OnInit, OnDestroy {
     return {
       total: this.messages.length,
       user: userMessages,
-      ai: aiMessages,
-      totalInSession: this.totalMessages
+      ai: aiMessages
     };
   }
-}
+} 
