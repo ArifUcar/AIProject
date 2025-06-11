@@ -279,22 +279,14 @@ export class ChatComponent implements OnInit, OnDestroy {
       const parsedData = JSON.parse(messageData);
       const message = parsedData.message || '';
       const base64Images = parsedData.images || [];
+      const userMessage = parsedData.userMessage;
 
       // Kullanıcı mesajını ekle
-      const userMessage: Message = {
-        id: Date.now(),
-        content: message,
-        sender: 'user',
-        timestamp: new Date(),
-        hasImage: base64Images.length > 0,
-        imageUrl: base64Images,
-        messageStatus: 0,
-        isActive: true
-      };
-      
-      this.messages = [...this.messages, userMessage];
-      this.updateSessionLastMessage(this.currentSessionId!, message);
-      this.scrollToBottom();
+      if (userMessage) {
+        this.messages = [...this.messages, userMessage];
+        this.updateSessionLastMessage(this.currentSessionId!, message);
+        this.scrollToBottom();
+      }
 
       const request: SendMessageRequest = {
         sessionId: this.currentSessionId,
@@ -309,7 +301,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         )
         .subscribe({
           next: (response: ChatMessageDto) => {
-            // AI yanıtını direkt olarak ekle
+            // AI yanıtını ekle
             if (response) {
               const aiMessage: Message = {
                 id: parseInt(response.id) || Date.now(),
@@ -321,11 +313,16 @@ export class ChatComponent implements OnInit, OnDestroy {
                 isActive: response.isActive
               };
               this.messages = [...this.messages, aiMessage];
+              this.scrollToBottom();
             }
           },
           error: (error) => {
             console.error('Mesaj gönderilirken hata:', error);
             this.errorMessage = 'Mesaj gönderilemedi.';
+            // Hata durumunda kullanıcı mesajını kaldır
+            if (userMessage) {
+              this.messages = this.messages.filter(m => m.id !== userMessage.id);
+            }
           }
         });
     } catch (error) {

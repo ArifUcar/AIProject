@@ -169,9 +169,23 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
         // Mesaj gönderiliyor - AI animasyonunu başlat
         console.log('Message sending, starting AI animation...');
         
+        // Önce kullanıcı mesajını ekle
+        const userMessage: Message = {
+          id: Date.now(),
+          content: this.newMessage,
+          sender: 'user',
+          timestamp: new Date(),
+          hasImage: base64Images.length > 0,
+          imageUrl: base64Images,
+          messageStatus: 0,
+          isActive: true
+        };
+
+        // Parent component'e bildir
         this.sendMessage.emit(JSON.stringify({
           message: this.newMessage,
-          images: base64Images
+          images: base64Images,
+          userMessage: userMessage // Kullanıcı mesajını da gönder
         }));
 
         // Mesaj gönderildikten sonra polling'i başlat
