@@ -97,8 +97,9 @@
         <app-chat-messages
           [messages]="messages"
           [currentSessionId]="currentSessionId"
-          [isLoading]="isWaitingForAIResponse"
-          (sendMessage)="onSendMessage($event)">
+          [isLoading]="isLoadingMessages"
+          (sendMessage)="onSendMessage($event)"
+          (checkAiResponse)="onCheckAiResponse()">
         </app-chat-messages>
 
         <!-- Load More Button -->

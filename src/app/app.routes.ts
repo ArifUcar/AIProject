@@ -9,7 +9,7 @@ import { ChoosePlanComponent } from './Modules/User/choose-plan/choose-plan.comp
 export const routes: Routes = [
     {
         path: '',
-        redirectTo: 'login',
+        redirectTo: 'chat',
         pathMatch: 'full'
     },
     {
@@ -22,8 +22,9 @@ export const routes: Routes = [
     },
     {
         path: 'chat',
-        component: ChatComponent,
-        canActivate: [AuthGuard]
+        loadComponent: () => import('./Modules/User/chat-page/chat.component').then(m => m.ChatComponent),
+        canActivate: [AuthGuard],
+        title: 'Sohbet'
     },
     {
         path: 'choose-plan',
@@ -32,6 +33,6 @@ export const routes: Routes = [
     },
     {
         path: '**',
-        redirectTo: 'login'
+        redirectTo: 'chat'
     }
 ];

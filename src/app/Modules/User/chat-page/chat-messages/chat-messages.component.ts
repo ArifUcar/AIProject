@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterVie
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { Subject, interval, takeUntil } from 'rxjs';
 
 // PrimeNG imports
 import { ButtonModule } from 'primeng/button';
@@ -59,6 +60,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   @Input() currentSessionId: string | null = null;
   @Input() isLoading: boolean = false;
   @Output() sendMessage = new EventEmitter<string>();
+  @Output() checkAiResponse = new EventEmitter<void>();
   @ViewChild('messagesList') private messagesList!: ElementRef;
 
   newMessage: string = '';
@@ -86,6 +88,11 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   ];
   private typingInterval: any = null;
   private typingMessageIndex: number = 0;
+
+  private destroy$ = new Subject<void>();
+  private pollingInterval: any = null;
+  private lastMessageId: number | null = null;
+  private isWaitingForAiResponse: boolean = false;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -142,6 +149,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       } else {
         // Loading bittiğinde typing animasyonunu durdur
         this.stopTypingAnimation();
+        // Loading bittiğinde polling'i durdur
+        this.stopPolling();
       }
     }
   }
@@ -164,15 +173,16 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
           message: this.newMessage,
           images: base64Images
         }));
+
+        // Mesaj gönderildikten sonra polling'i başlat
+        this.startPolling();
       };
 
       processFiles().then(() => {
         this.newMessage = '';
         this.selectedFiles = [];
         this.shouldScrollToBottom = true;
-        
-        // Kullanıcı mesajı gönderdikten sonra sadece kullanıcı mesajını scroll et
-        // AI yanıtı için otomatik scroll yapma
+        this.isWaitingForAiResponse = true;
       });
     }
   }
@@ -453,6 +463,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPolling();
     // Image URL cache'ini temizle
     this.imageUrlCache.clear();
     
@@ -530,5 +543,32 @@ export class ChatMessagesComponent implements AfterViewInit, OnChanges, OnDestro
       // Aynı sender ise ID'ye göre sırala
       return a.id - b.id;
     });
+  }
+
+  private startPolling() {
+    // Önceki polling'i temizle
+    this.stopPolling();
+
+    // Son mesajın ID'sini kaydet
+    if (this.messages.length > 0) {
+      this.lastMessageId = this.messages[this.messages.length - 1].id;
+    }
+
+    // Her 2 saniyede bir kontrol et
+    this.pollingInterval = interval(2000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.isWaitingForAiResponse && this.currentSessionId) {
+          this.checkAiResponse.emit();
+        }
+      });
+  }
+
+  private stopPolling() {
+    if (this.pollingInterval) {
+      this.pollingInterval.unsubscribe();
+      this.pollingInterval = null;
+    }
+    this.isWaitingForAiResponse = false;
   }
 }

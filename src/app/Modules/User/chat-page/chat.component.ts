@@ -620,4 +620,29 @@ export class ChatComponent implements OnInit, OnDestroy {
       // this.messages = [];
     }
   }
+
+  onCheckAiResponse() {
+    if (!this.currentSessionId) return;
+
+    this.chatMessageService.getBySessionIdMessages(this.currentSessionId, {
+      pageNumber: 1,
+      pageSize: 50,
+      includeDeleted: false
+    }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        const newMessages = this.mapMessagesToLocal(response.items || []);
+        
+        // Yeni AI mesajı var mı kontrol et
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage && lastMessage.sender === 'ai') {
+          this.messages = newMessages;
+        }
+      },
+      error: (error) => {
+        console.error('AI yanıtı kontrol edilirken hata:', error);
+      }
+    });
+  }
 } 
