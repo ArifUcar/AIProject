@@ -15,6 +15,7 @@ import { SenderType } from '../../../../Model/Enums/SenderType';
 import { SendMessageRequest } from '../../../../Model/Entity/Message/SentMessage.Request';
 import { finalize } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
+import { GetMessagesRequest } from '../../../../Model/Entity/Message/GetMessage.Request';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ interface FilePreview {
   file: File;
   preview: string;
   size: number;
+  name: string;
 }
 
 @Component({
@@ -134,25 +136,88 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy, 
     console.log('loadMessages başladı, sessionId:', sessionId);
     this.isLoading = true;
     try {
-      const response = await firstValueFrom(this.chatMessageService.getBySessionIdMessages(sessionId));
+      const params: GetMessagesRequest = {
+        pageSize: 100,
+        pageNumber: 1,
+        includeDeleted: false
+      };
+
+      const response = await firstValueFrom(this.chatMessageService.getBySessionIdMessages(sessionId, params));
+      console.log('API yanıtı:', response);
       
       if (response?.items) {
-        this.messages = response.items.map(msg => ({
-          id: msg.id,
-          content: msg.content || '',
-          sender: msg.senderType === SenderType.User ? 'user' : 'ai' as 'user' | 'ai',
-          timestamp: new Date(msg.createdDate || Date.now()),
-          imageUrl: msg.imageUrl || []
-        }));
+        console.log('Gelen mesaj sayısı:', response.items.length);
         
-        this.shouldScrollToBottom = true;
-        this.cdr.detectChanges();
+        // Mesajları createdDate'e göre milisaniye hassasiyetinde sırala
+        const sortedMessages = response.items
+          .map(msg => ({
+            id: msg.id,
+            content: msg.content || '',
+            sender: msg.senderType === SenderType.User ? 'user' : 'ai' as 'user' | 'ai',
+            timestamp: new Date(msg.createdDate),
+            createdDate: msg.createdDate, // Orijinal createdDate'i sakla
+            imageUrl: msg.imageUrl || []
+          }))
+          .sort((a, b) => {
+            // ISO string formatındaki tarihleri direkt karşılaştır
+            return a.createdDate.localeCompare(b.createdDate);
+          });
+
+        console.log('Sıralanmış mesajlar (ilk 3):', sortedMessages.slice(0, 3).map(m => ({
+          id: m.id,
+          createdDate: m.createdDate,
+          timestamp: m.timestamp
+        })));
+        
+        this.messages = sortedMessages;
+        
+        await this.waitForImagesToLoad();
+        
+        setTimeout(() => {
+          this.shouldScrollToBottom = true;
+          this.cdr.detectChanges();
+        }, 100);
+      } else {
+        console.warn('API yanıtında mesaj bulunamadı:', response);
       }
     } catch (error) {
       console.error('Mesajlar yüklenirken hata oluştu:', error);
+      if (error instanceof Error) {
+        console.error('Hata detayı:', error.message);
+        console.error('Hata stack:', error.stack);
+      }
     } finally {
       this.isLoading = false;
     }
+  }
+
+  private waitForImagesToLoad(): Promise<void> {
+    return new Promise((resolve) => {
+      const images = Array.from(document.querySelectorAll('.message-img')) as HTMLImageElement[];
+      if (images.length === 0) {
+        resolve();
+        return;
+      }
+
+      let loadedImages = 0;
+      const totalImages = images.length;
+
+      const checkAllLoaded = () => {
+        loadedImages++;
+        if (loadedImages === totalImages) {
+          resolve();
+        }
+      };
+
+      images.forEach(img => {
+        if (img.complete) {
+          checkAllLoaded();
+        } else {
+          img.onload = checkAllLoaded;
+          img.onerror = checkAllLoaded; // Hata durumunda da devam et
+        }
+      });
+    });
   }
 
   async onSendMessage(): Promise<void> {
@@ -249,7 +314,8 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy, 
           id: crypto.randomUUID(),
           file,
           preview: base64,
-          size: file.size
+          size: file.size,
+          name: file.name
         });
       } catch (error) {
         console.error('Dosya dönüştürme hatası:', error);
