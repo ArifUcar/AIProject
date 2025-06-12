@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatSessionComponent } from './chat-session/chat-session.component';
 import { ChatMessagesComponent } from './chat-messages/chat-messages.component';
-import { Subject, takeUntil, finalize } from 'rxjs';
+import { Subject, takeUntil, finalize, firstValueFrom } from 'rxjs';
 
 // PrimeNG imports
 import { DropdownModule } from 'primeng/dropdown';
@@ -59,6 +59,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   isMobile: boolean = false;
 
   private destroy$ = new Subject<void>();
+  isCreatingSession: boolean = false;
 
   constructor(
     private chatSessionService: ChatSessionService,
@@ -68,11 +69,9 @@ export class ChatComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.loadSessions();
-    this.loadModels();
-    this.setupDocumentClickListener();
     this.checkIfMobile();
     this.setupWindowResizeListener();
+    this.loadSessions();
   }
 
   ngOnDestroy() {
@@ -125,25 +124,29 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadSessions() {
-    this.isLoadingSessions = true;
-    this.errorMessage = '';
+  async loadSessions() {
+    if (this.isLoadingSessions) return;
 
-    this.chatSessionService.getActiveSessions()
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoadingSessions = false)
-      )
-      .subscribe({
-        next: (sessions: ChatSessionListItem[]) => {
-          this.sessions = this.mapSessionsToLocal(sessions);
-        },
-        error: (error) => {
-          console.error('Oturumlar yüklenirken hata:', error);
-          this.errorMessage = 'Oturumlar yüklenirken hata oluştu.';
-          this.loadTestSessions();
-        }
-      });
+    try {
+      this.isLoadingSessions = true;
+      const sessions = await firstValueFrom(this.chatSessionService.getActiveSessions());
+      this.sessions = this.mapSessionsToLocal(sessions);
+
+      // Eğer hiç oturum yoksa veya aktif oturum yoksa, yeni oturum oluştur
+      if (this.sessions.length === 0 || !this.currentSessionId) {
+        console.log('Oturum bulunamadı veya aktif oturum yok, yeni oturum oluşturuluyor...');
+        await this.createNewSession();
+      } else {
+        // Aktif oturumu seç
+        this.selectSession(this.currentSessionId);
+      }
+    } catch (error) {
+      console.error('Oturumlar yüklenirken hata:', error);
+      // Hata durumunda da yeni oturum oluştur
+      await this.createNewSession();
+    } finally {
+      this.isLoadingSessions = false;
+    }
   }
 
   private mapSessionsToLocal(sessions: ChatSessionListItem[]): ChatSession[] {
@@ -224,33 +227,57 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  onNewSession() {
-    const request: CreateSessionRequest = {
-      title: 'Yeni Sohbet',
-      modelUsed: this.selectedModel?.value || 'gpt-4'
-    };
+  async createNewSession() {
+    if (this.isCreatingSession) return;
 
-    this.chatSessionService.createSession(request)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (newSession) => {
-          const localSession: ChatSession = {
-            id: newSession.id,
-            title: newSession.title,
-            lastMessage: 'Henüz mesaj yok',
-            timestamp: this.convertToTurkeyTime(new Date(newSession.createdDate)),
-            messageCount: 0,
-            modelUsed: newSession.modelUsed
-          };
-          
-          this.sessions.unshift(localSession);
-          this.currentSessionId = newSession.id;
-        },
-        error: (error) => {
-          console.error('Yeni oturum oluşturulurken hata:', error);
-          this.errorMessage = 'Yeni oturum oluşturulamadı.';
-        }
-      });
+    try {
+      this.isCreatingSession = true;
+      const request: CreateSessionRequest = {
+        title: 'Yeni Sohbet',
+        modelUsed: this.selectedModel?.value || 'gpt-4'
+      };
+
+      const newSession = await firstValueFrom(
+        this.chatSessionService.createSession(request)
+      );
+
+      // Yeni oturumu listeye ekle
+      const localSession: ChatSession = {
+        id: newSession.id,
+        title: newSession.title,
+        lastMessage: 'Henüz mesaj yok',
+        timestamp: this.convertToTurkeyTime(new Date(newSession.createdDate)),
+        messageCount: 0,
+        modelUsed: newSession.modelUsed
+      };
+      
+      this.sessions.unshift(localSession);
+      this.currentSessionId = newSession.id;
+      
+      // Yeni oturumu seç
+      this.selectSession(newSession.id);
+    } catch (error) {
+      console.error('Yeni oturum oluşturma hatası:', error);
+    } finally {
+      this.isCreatingSession = false;
+    }
+  }
+
+  selectSession(sessionId: string) {
+    if (!sessionId || this.currentSessionId === sessionId) return;
+
+    console.log('Oturum seçiliyor:', sessionId);
+    this.currentSessionId = sessionId;
+    
+    // Seçilen oturumu bul
+    const selectedSession = this.sessions.find(s => s.id === sessionId);
+    if (selectedSession && selectedSession.modelUsed) {
+      // Session'ın modelini bul ve seç
+      const sessionModel = this.models.find(m => m.value === selectedSession.modelUsed);
+      if (sessionModel) {
+        this.selectedModel = sessionModel;
+      }
+    }
   }
 
   private updateSessionLastMessage(sessionId: string, lastMessage: string) {
@@ -430,5 +457,10 @@ export class ChatComponent implements OnInit, OnDestroy {
   onSessionOptions(sessionId: string) {
     // Oturum seçenekleri işlemleri burada yapılacak
     console.log('Oturum seçenekleri:', sessionId);
+  }
+
+  // Yeni oturum oluşturma butonu için
+  onNewSession() {
+    this.createNewSession();
   }
 } 
