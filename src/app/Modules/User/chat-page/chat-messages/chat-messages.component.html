@@ -51,18 +51,18 @@
                 <!-- Düz Metin Şablonu -->
                 <ng-template #plainText>
                   <!-- Resimler -->
-                  <ng-container *ngIf="message.imageUrl?.length">
-                    <div *ngFor="let imageUrl of message.imageUrl; trackBy: trackByImageUrl"
-                         class="message-image">
-                      <img 
-                        [src]="getImageUrl(imageUrl)"
-                        [alt]="'Mesaj resmi'"
-                        class="message-img"
-                        (error)="onImageError($event, imageUrl)"
-                        (load)="onImageLoad(imageUrl)"
-                        loading="lazy">
-                    </div>
-                  </ng-container>
+                  <div *ngIf="message.imageUrl && message.imageUrl.length > 0"
+                       class="message-images">
+                    <ng-container *ngFor="let url of message.imageUrl; trackBy: trackByImageUrl">
+                      <div class="image-container">
+                        <img [src]="getImageUrl(url)"
+                             [attr.data-message-id]="message.id"
+                             (error)="onImageError($event)"
+                             class="message-img"
+                             alt="Mesaj resmi">
+                      </div>
+                    </ng-container>
+                  </div>
 
                   <!-- Metin İçeriği -->
                   <div *ngIf="message.content && !isImageUrl(message.content)"

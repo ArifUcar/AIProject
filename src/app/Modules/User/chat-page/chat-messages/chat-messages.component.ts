@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, Input } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, Input, AfterViewChecked, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
@@ -26,9 +26,9 @@ interface Message {
 
 interface FilePreview {
   id: string;
-  name: string;
-  size: number;
+  file: File;
   preview: string;
+  size: number;
 }
 
 @Component({
@@ -49,11 +49,10 @@ interface FilePreview {
     CodeBlockComponent
   ]
 })
-export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesList') private messagesList!: ElementRef;
   @Input() isLoading: boolean = false;
   @Input() set currentSessionId(value: string | null) {
-    console.log('currentSessionId değişti:', value); // Debug log
     if (value !== this._currentSessionId) {
       this._currentSessionId = value;
       if (value) {
@@ -64,13 +63,14 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
   get currentSessionId(): string | null {
     return this._currentSessionId;
   }
+
   private _currentSessionId: string | null = null;
+  private readonly cdr = inject(ChangeDetectorRef);
+  private shouldScrollToBottom: boolean = true;
   
   messages: Message[] = [];
   newMessage: string = '';
   showScrollToBottomButton: boolean = false;
-  
-  // Dosya yükleme ile ilgili değişkenler
   selectedFiles: FilePreview[] = [];
   maxFiles: number = 5;
   private readonly maxFileSize: number = 5 * 1024 * 1024; // 5MB
@@ -91,10 +91,22 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedFiles.forEach(file => URL.revokeObjectURL(file.preview));
   }
 
+  ngAfterViewChecked(): void {
+    if (this.shouldScrollToBottom && this.messagesList) {
+      this.scrollToBottomSmooth();
+      this.shouldScrollToBottom = false;
+    }
+  }
+
   onScroll(event: Event): void {
     const element = event.target as HTMLElement;
     const scrollPosition = element.scrollHeight - element.scrollTop - element.clientHeight;
     this.showScrollToBottomButton = scrollPosition > 100;
+    
+    // Kullanıcı yukarı scroll yaptığında otomatik scroll'u devre dışı bırak
+    if (scrollPosition > 200) {
+      this.shouldScrollToBottom = false;
+    }
   }
 
   scrollToBottom(): void {
@@ -105,8 +117,9 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   scrollToBottomSmooth(): void {
     if (this.messagesList) {
-      this.messagesList.nativeElement.scrollTo({
-        top: this.messagesList.nativeElement.scrollHeight,
+      const element = this.messagesList.nativeElement;
+      element.scrollTo({
+        top: element.scrollHeight,
         behavior: 'smooth'
       });
     }
@@ -122,39 +135,23 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isLoading = true;
     try {
       const response = await firstValueFrom(this.chatMessageService.getBySessionIdMessages(sessionId));
-      console.log('API yanıtı (tam):', JSON.stringify(response, null, 2));
       
       if (response?.items) {
-        console.log('Gelen mesajlar (tam):', JSON.stringify(response.items, null, 2));
-        console.log('Mesajlar array mi?', Array.isArray(response.items));
-        console.log('Mesaj sayısı:', response.items.length);
+        this.messages = response.items.map(msg => ({
+          id: msg.id,
+          content: msg.content || '',
+          sender: msg.senderType === SenderType.User ? 'user' : 'ai' as 'user' | 'ai',
+          timestamp: new Date(msg.createdDate || Date.now()),
+          imageUrl: msg.imageUrl || []
+        }));
         
-        this.messages = response.items.map(msg => {
-          console.log('Mesaj dönüştürülüyor (ham):', JSON.stringify(msg, null, 2));
-          const transformedMsg: Message = {
-            id: msg.id,
-            content: msg.content || '',
-            sender: msg.senderType === SenderType.User ? 'user' : 'ai' as 'user' | 'ai',
-            timestamp: new Date(msg.createdDate || Date.now()),
-            imageUrl: msg.imageUrl || []
-          };
-          console.log('Dönüştürülmüş mesaj:', transformedMsg);
-          return transformedMsg;
-        });
-        
-        console.log('Tüm dönüştürülmüş mesajlar:', this.messages);
-      } else {
-        console.log('Session mesajları boş veya null. Response:', response);
+        this.shouldScrollToBottom = true;
+        this.cdr.detectChanges();
       }
     } catch (error) {
       console.error('Mesajlar yüklenirken hata oluştu:', error);
-      if (error instanceof Error) {
-        console.error('Hata detayı:', error.message);
-        console.error('Hata stack:', error.stack);
-      }
     } finally {
       this.isLoading = false;
-      this.scrollToBottom();
     }
   }
 
@@ -174,8 +171,8 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     this.messages.push(userMessage);
-    this.scrollToBottom();
-    this.clearAllFiles();
+    this.shouldScrollToBottom = true;
+    this.cdr.detectChanges();
 
     // AI yanıtını al
     this.isLoading = true;
@@ -212,53 +209,64 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
       );
       this.messages.push(aiMessage);
       
-      this.scrollToBottom();
+      this.shouldScrollToBottom = true;
+      this.cdr.detectChanges();
     } catch (error) {
-      console.error('Mesaj gönderilirken hata oluştu:', error);
-      if (error instanceof Error) {
-        console.error('Hata detayı:', error.message);
-        console.error('Hata stack:', error.stack);
-      }
-      // Hata durumunda kullanıcı mesajını kaldır
+      console.error('Mesaj gönderme hatası:', error);
       this.messages = this.messages.filter(msg => msg.id !== userMessage.id);
+      alert('Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       this.isLoading = false;
+      this.clearAllFiles();
     }
   }
 
   // Dosya işleme metodları
-  onFileSelect(event: Event): void {
+  async onFileSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
 
     const files = Array.from(input.files);
-    const validFiles = files.filter(file => this.validateFile(file));
+    const remainingSlots = this.maxFiles - this.selectedFiles.length;
 
-    validFiles.forEach(file => {
-      if (this.selectedFiles.length < this.maxFiles) {
-        const preview = URL.createObjectURL(file);
-        this.selectedFiles.push({
-          id: Date.now().toString(),
-          name: file.name,
-          size: file.size,
-          preview
-        });
+    if (remainingSlots <= 0) {
+      alert(`En fazla ${this.maxFiles} dosya yükleyebilirsiniz.`);
+      return;
+    }
+
+    const validFiles = files.slice(0, remainingSlots).filter(file => {
+      if (file.size > this.maxFileSize) {
+        alert(`${file.name} dosyası çok büyük. Maksimum dosya boyutu: ${this.getFileSizeText(this.maxFileSize)}`);
+        return false;
       }
+      return true;
     });
 
-    input.value = '';
+    for (const file of validFiles) {
+      try {
+        const base64 = await this.fileToBase64(file);
+        this.selectedFiles.push({
+          id: crypto.randomUUID(),
+          file,
+          preview: base64,
+          size: file.size
+        });
+      } catch (error) {
+        console.error('Dosya dönüştürme hatası:', error);
+        alert(`${file.name} dosyası yüklenirken bir hata oluştu.`);
+      }
+    }
+
+    input.value = ''; // Input'u temizle
   }
 
-  private validateFile(file: File): boolean {
-    if (file.size > this.maxFileSize) {
-      alert('Dosya boyutu 5MB\'dan büyük olamaz!');
-      return false;
-    }
-    if (!file.type.startsWith('image/')) {
-      alert('Sadece resim dosyaları yüklenebilir!');
-      return false;
-    }
-    return true;
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   }
 
   onFileRemove(fileId: string): void {
@@ -290,11 +298,45 @@ export class ChatMessagesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getImageUrl(url: string): string {
+    // Eğer URL blob: ile başlıyorsa ve geçerli bir blob URL'si değilse
+    if (url.startsWith('blob:') && !this.isValidBlobUrl(url)) {
+      console.warn('Geçersiz blob URL:', url);
+      return 'assets/images/image-error.png'; // Varsayılan hata resmi
+    }
     return url;
   }
 
-  onImageError(event: any, url: string): void {
-    console.error('Resim yüklenemedi:', url);
+  private isValidBlobUrl(url: string): boolean {
+    try {
+      // Blob URL'sinin geçerli olup olmadığını kontrol et
+      const blobUrl = new URL(url);
+      return blobUrl.protocol === 'blob:';
+    } catch {
+      return false;
+    }
+  }
+
+  onImageError(event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    console.warn('Resim yüklenemedi:', imgElement.src);
+    
+    // Hata durumunda varsayılan resmi göster
+    imgElement.src = 'assets/images/image-error.png';
+    imgElement.onerror = null; // Sonsuz döngüyü önle
+    
+    // Hata durumunda resmi mesajdan kaldır
+    const messageId = imgElement.getAttribute('data-message-id');
+    if (messageId) {
+      this.messages = this.messages.map(message => {
+        if (message.id === messageId) {
+          return {
+            ...message,
+            imageUrl: message.imageUrl?.filter(url => url !== imgElement.src) || []
+          };
+        }
+        return message;
+      });
+    }
   }
 
   onImageLoad(url: string): void {
