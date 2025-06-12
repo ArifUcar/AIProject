@@ -5,6 +5,9 @@ import { ChatSessionComponent } from './chat-session/chat-session.component';
 import { ChatMessagesComponent } from './chat-messages/chat-messages.component';
 import { Subject, takeUntil, finalize } from 'rxjs';
 
+// PrimeNG imports
+import { DropdownModule } from 'primeng/dropdown';
+
 // Services
 import { ChatSessionService, ChatSessionListItem, CreateSessionRequest } from '../../../Core/Services/ChatSessionService/ChatSession.service';
 import { PlanUserService } from '../../../Core/Services/PlanUserService/PlanUser.service';
@@ -21,7 +24,13 @@ interface ChatSession {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatSessionComponent, ChatMessagesComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ChatSessionComponent, 
+    ChatMessagesComponent,
+    DropdownModule
+  ],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss'
 })
@@ -103,8 +112,9 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   selectModel(model: any) {
+    if (!model) return;
+    
     this.selectedModel = model;
-    this.isDropdownOpen = false;
     console.log('Model değişti:', this.selectedModel);
     
     // Eğer aktif bir session varsa, modeli güncelle
@@ -141,7 +151,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       id: session.id,
       title: session.title,
       lastMessage: this.formatLastMessage(session),
-      timestamp: new Date(session.updatedDate || session.createdDate),
+      timestamp: this.convertToTurkeyTime(new Date(session.updatedDate || session.createdDate)),
       messageCount: session.messageCount,
       modelUsed: session.modelUsed
     }));
@@ -152,8 +162,8 @@ export class ChatComponent implements OnInit, OnDestroy {
       return 'Henüz mesaj yok';
     }
     
-    const lastMessageDate = new Date(session.lastMessageDate || session.updatedDate || session.createdDate);
-    const now = new Date();
+    const lastMessageDate = this.convertToTurkeyTime(new Date(session.lastMessageDate || session.updatedDate || session.createdDate));
+    const now = this.convertToTurkeyTime(new Date());
     const diffTime = Math.abs(now.getTime() - lastMessageDate.getTime());
     const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -166,8 +176,17 @@ export class ChatComponent implements OnInit, OnDestroy {
     return lastMessageDate.toLocaleDateString('tr-TR', {
       day: 'numeric',
       month: 'short',
-      year: lastMessageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      year: lastMessageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Istanbul'
     });
+  }
+
+  private convertToTurkeyTime(date: Date): Date {
+    // UTC'den Türkiye saatine çevir (UTC+3)
+    const turkeyTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+    return turkeyTime;
   }
 
   private loadTestSessions() {
@@ -219,7 +238,7 @@ export class ChatComponent implements OnInit, OnDestroy {
             id: newSession.id,
             title: newSession.title,
             lastMessage: 'Henüz mesaj yok',
-            timestamp: new Date(newSession.createdDate),
+            timestamp: this.convertToTurkeyTime(new Date(newSession.createdDate)),
             messageCount: 0,
             modelUsed: newSession.modelUsed
           };
@@ -240,7 +259,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.sessions[sessionIndex].lastMessage = lastMessage.length > 50 
         ? lastMessage.substring(0, 50) + '...' 
         : lastMessage;
-      this.sessions[sessionIndex].timestamp = new Date();
+      this.sessions[sessionIndex].timestamp = this.convertToTurkeyTime(new Date());
     }
   }
 

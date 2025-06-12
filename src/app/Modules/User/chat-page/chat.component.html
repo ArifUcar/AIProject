@@ -41,33 +41,37 @@
       </div>
 
       <!-- Message Header -->
-      <div *ngIf="currentSessionId && (!isMobile || !showMessages)" class="message-header">
+      <div *ngIf="currentSessionId" class="message-header">
         <div class="header-info">
           <h3>{{ getCurrentSessionTitle() }}</h3>
         </div>
         
         <!-- Model Selection Dropdown -->
-        <div class="header-model-selection">
-          <div class="custom-dropdown" [class.open]="isDropdownOpen">
-            <div class="dropdown-selected" (click)="toggleDropdown()">
-              <span class="selected-text">
-                {{ selectedModel?.label || 'Model seçin...' }}
-              </span>
-              <i class="dropdown-arrow" [class.rotated]="isDropdownOpen">▼</i>
-            </div>
-            <div class="dropdown-options" *ngIf="isDropdownOpen">
-              <div class="dropdown-option" 
-                   *ngFor="let model of models" 
-                   [class.selected]="selectedModel?.value === model.value"
-                   (click)="selectModel(model)">
-                {{ model.label }}
+        <div class="header-model-selection" [class.mobile-model-selection]="isMobile">
+          <label class="model-label">Model Seçim: </label>
+          <p-dropdown
+            [options]="models"
+            [(ngModel)]="selectedModel"
+            optionLabel="label"
+            [style]="{'width': isMobile ? '100%' : '200px'}"
+            [class]="'model-dropdown'"
+            [showClear]="false"
+            [disabled]="isLoadingModels"
+            (onChange)="selectModel($event.value)"
+            [dropdownIcon]="'pi pi-chevron-down'"
+            [placeholder]="'Model seçin...'">
+            <ng-template pTemplate="selectedItem">
+              <div class="selected-model-item">
+                <span>{{ selectedModel?.label || 'Model seçin...' }}</span>
               </div>
-              <div class="dropdown-loading" *ngIf="isLoadingModels">
-                <div class="loading-spinner"></div>
-                <span>Yükleniyor...</span>
+            </ng-template>
+            <ng-template let-model pTemplate="item">
+              <div class="model-option-item">
+                <span>{{ model.label }}</span>
+                <i *ngIf="selectedModel?.value === model.value" class="pi pi-check"></i>
               </div>
-            </div>
-          </div>
+            </ng-template>
+          </p-dropdown>
         </div>
       </div>
       
