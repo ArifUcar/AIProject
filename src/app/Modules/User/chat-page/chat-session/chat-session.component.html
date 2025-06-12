@@ -1,120 +1,97 @@
-<div class="chat-sessions-container">
-  <!-- Header Section -->
-  <div class="sessions-header">
-    <h2 class="header-title">
-      <i class="pi pi-comments" style="margin-right: 8px;"></i>
-      Sohbetler
-    </h2>
-    
-    <p-button 
-      class="new-session-btn"
-      label="Yeni Sohbet"
-      icon="pi pi-plus"
-      [raised]="true"
-      [rounded]="true"
-      severity="info"
-      (onClick)="onCreateNewSession()"
-      pTooltip="Yeni sohbet başlat"
-      tooltipPosition="bottom">
-    </p-button>
+<div class="chat-session-container">
+  <!-- Başlık ve Arama -->
+  <div class="session-header">
+    <h2>Sohbetler</h2>
+    <div class="search-box">
+      <span class="p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input type="text" 
+               pInputText 
+               [(ngModel)]="searchTerm" 
+               (input)="searchSessions($event)"
+               placeholder="Sohbetlerde ara..."
+               [disabled]="isLoading">
+      </span>
+    </div>
   </div>
 
-  <p-divider></p-divider>
+  <!-- Oturum Listesi -->
+  <div class="session-list" [class.loading]="isLoading">
+    <!-- Yükleme Göstergesi -->
+    <div *ngIf="isLoading" class="loading-overlay">
+      <i class="pi pi-spin pi-spinner"></i>
+    </div>
 
-  <!-- Sessions List -->
-  <p-scrollPanel class="sessions-scroll" [style]="{'height': 'calc(100vh - 180px)'}">
-    <div class="sessions-list">
-      <ng-container *ngFor="let session of sessions; trackBy: trackBySessionId">
-        <p-card 
-          class="session-card"
-          [class.active]="session.id === activeSessionId"
-          (click)="onSelectSession(session.id)"
-          [pTooltip]="session.title"
-          tooltipPosition="right"
-          pRipple>
-          
-          <div class="session-content">
-            <!-- Avatar Section -->
-            <div class="session-avatar-section">
-             
-              
-              <!-- Online Status Indicator -->
-              <div 
-                class="status-indicator" 
-                [class.online]="session.isOnline"
-                *ngIf="session.isOnline">
-              </div>
-            </div>
-
-            <!-- Session Info -->
-            <div class="session-info">
-              <div class="session-header">
-                <h3 class="session-title">{{ session.title }}</h3>
-                <div class="session-meta">
-                  <span class="session-timestamp">
-                    {{ formatTimestamp(session.timestamp) }}
-                  </span>
-                  <p-badge 
-                    *ngIf="session.unreadCount && session.unreadCount > 0"
-                    [value]="session.unreadCount.toString()"
-                    severity="info"
-                    size="small">
-                  </p-badge>
-                </div>
-              </div>
-              
-              <p class="session-last-message">
-                <i class="pi pi-comment" style="margin-right: 4px; opacity: 0.7;"></i>
-                {{ session.lastMessage }}
-              </p>
-            </div>
-
-            <!-- Actions -->
-            <div class="session-actions" *ngIf="session.id === activeSessionId">
-              <div class="options-container">
-                <p-button 
-                  icon="pi pi-ellipsis-v"
-                  [text]="true"
-                  [rounded]="true"
-                  size="small"
-                  severity="secondary"
-                  pTooltip="Seçenekler"
-                  (click)="onShowOptions(session.id, $event)"
-                  class="options-btn">
-                </p-button>
-                
-                <!-- Options Dropdown Menu -->
-                <div class="options-menu" 
-                     *ngIf="showOptionsMenu && optionsSessionId === session.id"
-                     (click)="$event.stopPropagation()">
-                  <div class="menu-item" (click)="onEditSession(session.id, $event)">
-                    <i class="pi pi-edit"></i>
-                    <span>Düzenle</span>
-                  </div>
-                  <div class="menu-item delete" (click)="onDeleteSession(session.id, $event)">
-                    <i class="pi pi-trash"></i>
-                    <span>Sil</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <!-- Oturum Kartları -->
+    <div *ngFor="let session of sessions; trackBy: trackBySessionId"
+         class="session-card"
+         [class.active]="session.id === activeSessionId"
+         (click)="onSelectSession(session.id)"
+         pRipple>
+      
+      <!-- Oturum Başlığı ve Seçenekler -->
+      <div class="session-card-header">
+        <div class="session-info">
+          <div class="session-details">
+            <h3 class="session-title">{{ session.title }}</h3>
+            <span class="model-badge">{{ session.modelUsed }}</span>
           </div>
-        </p-card>
-      </ng-container>
+        </div>
+        
+        <button class="options-btn"
+                pButton
+                icon="pi pi-ellipsis-v"
+                (click)="onShowOptions(session.id, $event)"
+                [disabled]="isLoading">
+        </button>
+      </div>
 
-      <!-- Empty State -->
-      <div class="empty-state" *ngIf="!sessions || sessions.length === 0">
-        <i class="pi pi-comments empty-icon"></i>
-        <h3>Henüz sohbet yok</h3>
-        <p>Yeni bir sohbet başlatarak AI ile konuşmaya başlayın</p>
-        <p-button 
-          label="İlk Sohbeti Başlat"
-          icon="pi pi-plus"
-          [raised]="true"
-          severity="info"
-          (onClick)="onCreateNewSession()">
-        </p-button>
+      <!-- Oturum Detayları -->
+      <div class="session-card-content">
+        <div class="session-meta">
+          <span class="timestamp">{{ formatTimestamp(session.timestamp) }}</span>
+          <span *ngIf="session.unreadCount" 
+                class="unread-badge">
+            {{ session.unreadCount }}
+          </span>
+        </div>
       </div>
     </div>
-  </p-scrollPanel>
+
+    <!-- Boş Durum -->
+    <div *ngIf="!isLoading && sessions.length === 0" class="empty-state">
+      <i class="pi pi-comments"></i>
+      <p>Henüz sohbet oturumu yok</p>
+    </div>
+  </div>
+
+  <!-- Yeni Oturum Butonu -->
+  <button class="new-session-btn"
+          pButton
+          icon="pi pi-plus"
+          label="Yeni Sohbet"
+          (click)="createNewSession()"
+          [disabled]="isLoading">
+  </button>
+
+  <!-- Seçenekler Menüsü -->
+  <p-menu #optionsMenu
+          [model]="menuItems"
+          [popup]="true"
+          [style]="{'width': '200px'}"
+          appendTo="body"
+          [autoZIndex]="true"
+          [baseZIndex]="1000">
+  </p-menu>
+
+  <!-- Onay Dialog -->
+  <p-confirmDialog
+    header="Onay"
+    acceptLabel="Evet"
+    rejectLabel="Hayır"
+    acceptButtonStyleClass="p-button-danger"
+    rejectButtonStyleClass="p-button-text"
+    [style]="{'width': '350px'}"
+    [baseZIndex]="1000">
+  </p-confirmDialog>
 </div>

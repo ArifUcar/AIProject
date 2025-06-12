@@ -19,10 +19,10 @@
       </div>
 
       <app-chat-session
-        [sessions]="sessions"
         [activeSessionId]="currentSessionId"
         (sessionSelected)="onSessionSelected($event)"
-        (newSession)="onNewSession()">
+        (newSession)="onNewSession()"
+        (sessionOptions)="onSessionOptions($event)">
       </app-chat-session>
     </div>
 

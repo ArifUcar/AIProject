@@ -35,6 +35,7 @@ export interface ChatSessionListItem {
   updatedDate: string;
   messageCount: number;
   lastMessageDate: string;
+  unreadCount?: number;
 }
 
 export interface GetSessionsParams {

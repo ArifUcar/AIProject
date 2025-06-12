@@ -192,14 +192,9 @@ export class ChatComponent implements OnInit, OnDestroy {
       // Session'ın modelini bul ve seç
       const sessionModel = this.models.find(m => m.value === selectedSession.modelUsed);
       if (sessionModel) {
-        console.log('Session modeli bulundu ve seçildi:', sessionModel);
         this.selectedModel = sessionModel;
-      } else {
-        console.log('Session modeli bulunamadı, varsayılan model kullanılıyor');
-        // Eğer session'ın modeli listede yoksa ilk modeli seç
-        if (this.models.length > 0) {
-          this.selectedModel = this.models[0];
-        }
+      } else if (this.models.length > 0) {
+        this.selectedModel = this.models[0];
       }
     }
     
@@ -411,5 +406,10 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   get hasActiveSessions(): boolean {
     return this.sessions.length > 0;
+  }
+
+  onSessionOptions(sessionId: string) {
+    // Oturum seçenekleri işlemleri burada yapılacak
+    console.log('Oturum seçenekleri:', sessionId);
   }
 } 
