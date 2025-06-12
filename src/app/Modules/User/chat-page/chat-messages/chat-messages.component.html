@@ -1,107 +1,150 @@
+<!-- Ana Konteyner -->
 <div class="chat-messages-container">
+  <!-- Mesajlar Alanı -->
   <div class="messages-wrapper">
-    <!-- Messages Area -->
-    <div *ngIf="currentSessionId" #messagesList class="messages-scroll-area" (scroll)="onScroll($event)">
+    <!-- Mesaj Listesi -->
+    <div *ngIf="currentSessionId" 
+         #messagesList 
+         class="messages-scroll-area">
+      
       <div class="messages-content">
-        <!-- Message Cards -->
-        <div *ngFor="let message of messages" 
-             class="message-wrapper"
-             [ngClass]="{'user-message-wrapper': message.sender === 'user', 'ai-message-wrapper': message.sender === 'ai'}">
-          
-          <div class="message-avatar">
-            <p-avatar [icon]="getUserAvatarIcon(message.sender)"
-              [style]="{'background-color': getUserAvatarColor(message.sender), 'color': 'white'}"
-                     size="normal" shape="circle">
-            </p-avatar>
-          </div>
+        <!-- Mesaj Kartları -->
+        <ng-container *ngFor="let message of messages">
+          <div class="message-wrapper"
+               [ngClass]="{
+                 'user-message-wrapper': message.sender === 'user',
+                 'ai-message-wrapper': message.sender === 'ai'
+               }">
+            
+            <!-- Avatar -->
+            <div class="message-avatar">
+              <div class="avatar"
+                   [style.background-color]="getUserAvatarColor(message.sender)"
+                   (mouseenter)="onAvatarHover($event, true)"
+                   (mouseleave)="onAvatarHover($event, false)">
+                <i [class]="getUserAvatarIcon(message.sender)"></i>
+              </div>
+            </div>
 
-          <p-card class="message-card">
-            <div class="message-content">
-              <!-- Code blocks or plain text -->
-              <ng-container *ngIf="hasCodeBlocks(message.content); else plainText">
-                <ng-container *ngFor="let part of parseMessageContent(message.content)">
-                  <div *ngIf="part.type === 'text'" class="text-content">{{ part.content }}</div>
-                  <app-code-block *ngIf="part.type === 'code'" [code]="part.content" [language]="part.language || 'text'"></app-code-block>
+            <!-- Mesaj Kartı -->
+            <div class="message-card">
+              <!-- Mesaj İçeriği -->
+              <div class="message-content">
+                <!-- Kod Blokları veya Düz Metin -->
+                <ng-container *ngIf="hasCodeBlocks(message.content); else plainText">
+                  <ng-container *ngFor="let part of parseMessageContent(message.content)">
+                    <!-- Düz Metin -->
+                    <div *ngIf="part.type === 'text'" 
+                         class="text-content"
+                         [style.color]="message.sender === 'user' ? 'white' : 'var(--text-primary)'">
+                      {{ part.content }}
+                    </div>
+                    
+                    <!-- Kod Bloğu -->
+                    <app-code-block *ngIf="part.type === 'code'"
+                                  [code]="part.content"
+                                  [language]="part.language || 'text'">
+                    </app-code-block>
+                  </ng-container>
                 </ng-container>
-              </ng-container>
-              
-              <ng-template #plainText>
-                <!-- Images -->
-                <div *ngFor="let imageUrl of message.imageUrl; trackBy: trackByImageUrl" class="message-image">
-                  <p-image [src]="getImageUrl(imageUrl)"
-                          [alt]="'Message image'"
-                          [preview]="true"
-                          loading="lazy"
-                          (onError)="onImageError($event, imageUrl)"
-                          (onLoad)="onImageLoad(imageUrl)"
-                          class="message-img">
-                    </p-image>
-                  </div>
-                  
-                <!-- Text content -->
-                <div class="text-content" *ngIf="message.content && !isImageUrl(message.content)">
+
+                <!-- Düz Metin Şablonu -->
+                <ng-template #plainText>
+                  <!-- Resimler -->
+                  <ng-container *ngIf="message.imageUrl?.length">
+                    <div *ngFor="let imageUrl of message.imageUrl; trackBy: trackByImageUrl"
+                         class="message-image">
+                      <img 
+                        [src]="getImageUrl(imageUrl)"
+                        [alt]="'Mesaj resmi'"
+                        class="message-img"
+                        (error)="onImageError($event, imageUrl)"
+                        (load)="onImageLoad(imageUrl)"
+                        loading="lazy">
+                    </div>
+                  </ng-container>
+
+                  <!-- Metin İçeriği -->
+                  <div *ngIf="message.content && !isImageUrl(message.content)"
+                       class="text-content"
+                       [style.color]="message.sender === 'user' ? 'white' : 'var(--text-primary)'">
                     {{ message.content }}
                   </div>
-              </ng-template>
-            </div>
-            
-            <div class="message-timestamp">
-              <small>{{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}</small>
-            </div>
-          </p-card>
-        </div>
-
-        <!-- AI Loading Indicator -->
-        <div class="message-wrapper ai-message-wrapper" *ngIf="isLoading">
-          <div class="message-avatar">
-            <p-avatar icon="pi pi-android"
-                     [style]="{'background-color': '#10b981', 'color': 'white'}"
-                     size="normal" shape="circle">
-            </p-avatar>
-          </div>
-          <p-card class="message-card typing-card">
-              <div class="typing-indicator">
-              <i class="pi pi-android"></i>
-              <span>AI yanıtlıyor</span>
-                <div class="typing-dots">
-                  <span class="dot"></span>
-                  <span class="dot"></span>
-                  <span class="dot"></span>
-                </div>
+                </ng-template>
               </div>
-            </p-card>
+
+              <!-- Zaman Damgası -->
+              <div class="message-timestamp">
+                <small>{{ message.timestamp | date:'dd MMM yyyy, HH:mm' }}</small>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- AI Yazıyor Göstergesi -->
+        <div *ngIf="isLoading"
+             class="message-wrapper ai-message-wrapper">
+          <div class="message-avatar">
+            <div class="avatar typing-avatar">
+              <i class="pi pi-android"></i>
+            </div>
+          </div>
+
+          <div class="message-card typing-card">
+            <div class="typing-indicator">
+              <i class="pi pi-android"></i>
+              <span>AI düşünüyor</span>
+              <div class="typing-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Scroll to Bottom Button -->
-    <p-button *ngIf="showScrollToBottomButton" 
-      class="scroll-to-bottom-btn"
-      icon="pi pi-angle-down"
-      [rounded]="true"
-      severity="primary"
-      pTooltip="Aşağı git"
-      (onClick)="scrollToBottomSmooth()">
-    </p-button>
+    <!-- Aşağı Kaydırma Butonu -->
+    <button *ngIf="showScrollToBottomButton"
+            class="scroll-to-bottom-btn"
+            (click)="scrollToBottomSmooth()"
+            (mouseenter)="onButtonHover($event, true)"
+            (mouseleave)="onButtonHover($event, false)"
+            title="Aşağı git">
+      <i class="pi pi-angle-down"></i>
+    </button>
   </div>
 
-  <!-- Message Input -->
+  <!-- Mesaj Giriş Alanı - Sabit Alt Kısım -->
   <div class="message-input-container">
-    <!-- File Preview -->
-    <div class="file-preview-area" *ngIf="selectedFiles.length > 0">
+    <!-- Dosya Önizleme Alanı -->
+    <div *ngIf="selectedFiles.length > 0"
+         class="file-preview-area">
+      <!-- Önizleme Başlığı -->
       <div class="preview-header">
         <span>{{ selectedFiles.length }}/{{ maxFiles }} fotoğraf</span>
-        <p-button icon="pi pi-times" [text]="true" size="small" (click)="clearAllFiles()"></p-button>
+        <button class="clear-files-btn"
+                (click)="clearAllFiles()">
+          <i class="pi pi-times"></i>
+        </button>
       </div>
-      
+
+      <!-- Önizleme Izgara -->
       <div class="preview-grid">
-        <div class="preview-item" *ngFor="let file of selectedFiles">
+        <div *ngFor="let file of selectedFiles"
+             class="preview-item">
+          <!-- Önizleme Resim -->
           <div class="preview-image-wrapper">
-            <img [src]="file.preview" [alt]="file.name" class="preview-image">
-            <p-button icon="pi pi-times" [rounded]="true" size="small" severity="danger" 
-                     (click)="onFileRemove(file.id || '')" class="remove-btn">
-              </p-button>
+            <img [src]="file.preview"
+                 [alt]="file.name"
+                 class="preview-image">
+            <button class="remove-file-btn"
+                    (click)="onFileRemove(file.id)">
+              <i class="pi pi-times"></i>
+            </button>
           </div>
+          <!-- Dosya Bilgileri -->
           <div class="preview-info">
             <span class="file-name">{{ file.name }}</span>
             <span class="file-size">{{ getFileSizeText(file.size) }}</span>
@@ -110,36 +153,51 @@
       </div>
     </div>
 
+    <!-- Giriş Alanı -->
     <div class="input-wrapper">
-      <!-- File Upload -->
+      <!-- Dosya Yükleme -->
       <div class="file-upload-section">
-        <input type="file" #fileInput multiple accept="image/*" 
-          [disabled]="selectedFiles.length >= maxFiles"
-               (change)="onFileSelect($event)" style="display: none;">
-        
-        <p-button icon="pi pi-paperclip" [text]="true" size="small"
-          [disabled]="selectedFiles.length >= maxFiles"
-          (click)="fileInput.click()"
-                 pTooltip="Fotoğraf ekle">
-        </p-button>
-        
-        <p-badge *ngIf="selectedFiles.length > 0" [value]="selectedFiles.length.toString()" severity="info"></p-badge>
+        <input type="file"
+               #fileInput
+               multiple
+               accept="image/*"
+               [disabled]="selectedFiles.length >= maxFiles"
+               (change)="onFileSelect($event)"
+               style="display: none;">
+
+        <button class="upload-btn"
+                [disabled]="selectedFiles.length >= maxFiles"
+                (click)="fileInput.click()"
+                title="Fotoğraf ekle"
+                (mouseenter)="onButtonHover($event, true)"
+                (mouseleave)="onButtonHover($event, false)">
+          <i class="pi pi-paperclip"></i>
+        </button>
+
+        <span *ngIf="selectedFiles.length > 0"
+              class="file-count-badge">
+          {{ selectedFiles.length }}
+        </span>
       </div>
 
-      <!-- Text Input -->
-      <input type="text" pInputText [(ngModel)]="newMessage"
-        placeholder="Mesajınızı yazın..."
-        (keydown.enter)="onSendMessage()"
+      <!-- Metin Girişi -->
+      <input type="text"
+             [(ngModel)]="newMessage"
+             placeholder="Mesajınızı yazın..."
+             (keydown.enter)="onSendMessage()"
              [disabled]="isLoading"
              class="message-input">
 
-      <!-- Send Button -->
-      <p-button icon="pi pi-send"
-        [disabled]="!newMessage.trim() && selectedFiles.length === 0 || isLoading"
-        (click)="onSendMessage()"
-        [rounded]="true"
-               severity="info">
-      </p-button>
+      <!-- Gönder Butonu -->
+      <button class="send-btn"
+              [disabled]="!newMessage.trim() && selectedFiles.length === 0 || isLoading"
+              (click)="onSendMessage()"
+              (mouseenter)="onButtonHover($event, true)"
+              (mouseleave)="onButtonHover($event, false)">
+        <i class="pi pi-send"></i>
+      </button>
     </div>
   </div>
 </div>
+
+

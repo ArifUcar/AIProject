@@ -5,6 +5,7 @@ import { catchError, retry } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 import { SendMessageRequest } from '../../../Model/Entity/Message/SentMessage.Request';
+import { SendMessageResponse } from '../../../Model/Entity/Message/SendMessage.Response';
 
 import { GetMessagesRequest } from '../../../Model/Entity/Message/GetMessage.Request';
 import { PaginatedResponse } from '../../../Model/Entity/Message/Paginated.Response';
@@ -67,15 +68,15 @@ export class ChatMessageService {
     });
   }
 
-  sendMessage(request: SendMessageRequest): Observable<ChatMessageDto> {
+  sendMessage(request: SendMessageRequest): Observable<SendMessageResponse> {
     try {
       const headers = this.getHeaders();
-      return this.http.post<ChatMessageDto>(
+      return this.http.post<SendMessageResponse>(
         `${this.apiUrl}/send`, 
         request,
         { headers }
       ).pipe(
-        retry(1), // Bir kez yeniden dene
+        retry(1),
         catchError(this.handleError)
       );
     } catch (error) {

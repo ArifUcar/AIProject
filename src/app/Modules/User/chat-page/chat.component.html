@@ -44,11 +44,6 @@
       <div *ngIf="currentSessionId && (!isMobile || !showMessages)" class="message-header">
         <div class="header-info">
           <h3>{{ getCurrentSessionTitle() }}</h3>
-          <div class="message-stats">
-            <span>📊 {{ messageStats.total }}</span>
-            <span>👤 {{ messageStats.user }}</span>
-            <span>🤖 {{ messageStats.ai }}</span>
-          </div>
         </div>
         
         <!-- Model Selection Dropdown -->
@@ -95,23 +90,10 @@
       <!-- Messages Container -->
       <div *ngIf="currentSessionId" class="messages-container">
         <app-chat-messages
-          [messages]="messages"
+          *ngIf="showMessages"
           [currentSessionId]="currentSessionId"
           [isLoading]="isLoadingMessages"
-          (sendMessage)="onSendMessage($event)"
-          (checkAiResponse)="onCheckAiResponse()">
-        </app-chat-messages>
-
-        <!-- Load More Button -->
-        <div *ngIf="canLoadMore" class="load-more-container">
-          <button (click)="onLoadMoreMessages()" class="load-more-btn" [disabled]="isLoadingMessages">
-            <span *ngIf="!isLoadingMessages">📄 Daha Fazla Mesaj</span>
-            <span *ngIf="isLoadingMessages">
-              <div class="spinner small"></div>
-              Yükleniyor...
-            </span>
-          </button>
-        </div>
+        ></app-chat-messages>
       </div>
     </div>
   </div>
